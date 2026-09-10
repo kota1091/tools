@@ -138,16 +138,21 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 .rd.cur .rno::after{content:"";display:block;width:8px;height:8px;border-radius:50%;
   background:var(--now);margin:5px auto 0}
 .rd .body{min-width:0}
-.cts{display:flex;flex-wrap:wrap}
-.ct{position:relative;flex:1 1 200px;min-width:0;background:#eef2ec;border:1px solid var(--rule);
-  border-radius:8px;padding:8px 30px 9px;display:flex;flex-direction:column;align-items:center;
-  margin:0 8px 8px 0}
+.cts{display:flex;flex-wrap:wrap}                 /* 古い環境向けの保険 */
+@supports (display:grid){
+  .cts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));grid-gap:8px;gap:8px}
+  .cts>.ct{margin:0}
+}
+.ct{position:relative;min-width:0;background:#eef2ec;border:1px solid var(--rule);
+  border-radius:8px;padding:8px 14px 9px 32px;display:flex;flex-direction:column;align-items:center;
+  flex:1 1 300px;margin:0 8px 8px 0}
 .ct .cl{position:absolute;left:9px;top:6px;font-size:20px;font-weight:900;color:var(--ink-30);line-height:1}
 .ct .tm{font-size:var(--fname);font-weight:700;line-height:1.35;text-align:center;overflow-wrap:break-word}
 .ct .tm span{white-space:nowrap}
 .ct .hr{width:62%;height:0;border-top:2px solid rgba(18,35,31,.14);margin:5px 0 4px}
 
 .rd.cur .ct{background:var(--court);border-color:var(--court-dark)}
+.rd.cur .ct .tm{color:#fff}
 .rd.cur .ct .cl{color:rgba(255,255,255,.72)}
 .rd.cur .ct .hr{border-top-color:rgba(255,255,255,.4)}
 .rd.cur .ct .male{color:#fff}
@@ -218,8 +223,9 @@ td.spark{width:30%;text-align:left}
   .rd{--fname:32px}
   .rd{padding:9px 8px;padding-left:44px}
   .rd .rno{left:3px;width:36px;font-size:24px}
-  .cts{margin:0}
-  .ct{flex:1 1 100%;padding:7px 6px 8px 32px;margin:0 0 6px 0}
+  .cts{grid-template-columns:1fr;grid-gap:6px;gap:6px}
+  .ct{flex:1 1 100%;margin:0 0 6px 0}
+  .ct{padding:7px 6px 8px 32px}
   .ct .cl{left:6px;top:50%;margin-top:-11px;font-size:18px}
   .ct .tm{white-space:nowrap}
   .ct .hr{width:70%;margin:4px 0 3px}
