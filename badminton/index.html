@@ -15,8 +15,8 @@
   --bench:#41607a; --bench-soft:#e3eaef;
   --now:#f2c230; --warn:#a8442a; --rule:#d3dbd2;
   --play:#0d4c38; --rest:#eda43a;
-  --male:#12231f; --female:#cf6a12;
-  --fname:26px;
+  --male:#12231f; --female:#cf6a12; --female-soft:#e5a877;
+  --fname:34px;
   --male-court:#ffffff; --female-court:#ffd39b;
   --r:10px;
 }
@@ -33,9 +33,9 @@ body{
 .bg svg{width:100%;height:100%;display:block}
 .wrap{max-width:960px;margin:0 auto;padding:20px 16px 80px}
 h1{font-size:22px;font-weight:900;margin:0}
-h2{font-size:16px;font-weight:700;margin:0 0 12px;display:flex;align-items:baseline;flex-wrap:wrap}
-h2>*+*{margin-left:10px}
-h2 .note{font-size:12.5px;font-weight:400;color:var(--ink-60)}
+h2{font-size:21px;font-weight:700;margin:0 0 14px;display:flex;align-items:baseline;flex-wrap:wrap}
+h2>*+*{margin-left:18px}
+h2 .note{font-size:14px;font-weight:400;color:var(--ink-60)}
 p{margin:0 0 10px}
 button{font-family:inherit;font-size:14px;cursor:pointer}
 input,select{font-family:inherit;font-size:15px;color:var(--ink)}
@@ -71,7 +71,7 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 .member .nm{flex:1;min-width:0;font-size:23px;font-weight:700;line-height:1.4;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .member.off .nm{color:var(--ink-30);font-weight:500}
-.member.off .nm.female{color:var(--female)}
+.member.off .nm.female{color:var(--female-soft)}
 .member .del{margin-right:10px;border:1.5px solid var(--warn);background:#fff;color:var(--warn);
   width:34px;height:34px;border-radius:8px;font-size:16px;line-height:1;padding:0;flex:none}
 .member .del:hover{background:var(--warn);color:#fff}
@@ -129,14 +129,14 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 .rd{position:relative;display:block;width:100%;text-align:left;cursor:pointer;
   touch-action:manipulation;-webkit-tap-highlight-color:transparent;
   background:rgba(250,251,249,.9);border:1.5px solid var(--rule);border-radius:10px;
-  padding:10px 11px 10px 54px;color:inherit;font-size:14px}
+  padding:10px 11px 10px 58px;color:inherit;font-size:14px}
 .rd+.rd{margin-top:8px}
 @media (hover:hover){ .rd:hover{border-color:var(--court)} }
 .rd.done{opacity:.5}
 .rd.cur{background:#fdf7e3;border-color:var(--now);box-shadow:inset 4px 0 0 var(--court)}
-.rd .rno{position:absolute;left:8px;top:50%;width:38px;text-align:center;
+.rd .rno{position:absolute;left:8px;top:50%;width:42px;text-align:center;
   -webkit-transform:translateY(-50%);transform:translateY(-50%);
-  font-weight:900;font-size:var(--fname);line-height:1.15;color:var(--ink-30)}
+  font-weight:900;font-size:26px;line-height:1.15;color:var(--ink-30)}
 .rd.cur .rno{color:var(--court)}
 .rd.cur .rno::after{content:"";display:block;width:8px;height:8px;border-radius:50%;
   background:var(--now);margin:5px auto 0}
@@ -148,7 +148,7 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 .ct .tm{font-size:var(--fname);font-weight:700;line-height:1.35;text-align:center;overflow-wrap:break-word}
 .ct .tm span{white-space:nowrap}
 .ct .vsl{font-size:17px;font-weight:700;color:var(--ink-30);padding:1px 0}
-.rd.cur{--fname:28.5px}
+
 .rd.cur .ct{background:var(--court);border-color:var(--court-dark)}
 .rd.cur .ct .cl,.rd.cur .ct .vsl{color:rgba(255,255,255,.72)}
 .rd.cur .ct .male{color:#fff}
@@ -217,10 +217,9 @@ td.spark{width:30%;text-align:left}
   .setup .btn.ghost{flex:0 0 auto}
   .tools .btn{flex:1 1 auto}
   .rlist{max-height:58vh}
-  .rd{--fname:25px}
-  .rd.cur{--fname:27px}
-  .rd{padding:9px 8px;padding-left:42px}
-  .rd .rno{left:3px;width:34px}
+  .rd{--fname:32px}
+  .rd{padding:9px 8px;padding-left:44px}
+  .rd .rno{left:3px;width:36px;font-size:24px}
   .cts{margin:0}
   .ct{flex:1 1 100%;position:relative;padding:7px 8px 8px 38px;margin:0 0 6px 0}
   .ct .cl{position:absolute;left:8px;top:50%;margin-top:-14px}
@@ -308,7 +307,7 @@ td.spark{width:30%;text-align:left}
 </section>
 
 <section class="noprint">
-  <h2>試合の設定</h2>
+  <h2>試合の設定 <span class="note" id="scount"></span></h2>
   <div class="setup">
     <div class="field">
       <label for="courts">使うコート数</label>
@@ -1057,8 +1056,10 @@ function renderMembers(){
   $('emptyRoster').hidden = state.players.length > 0;
   var n = activeIds().length, total = state.players.length;
   var men = state.players.filter(function(p){ return p['in'] && p.sex!=='f'; }).length;
-  $('mcount').innerHTML = '参加 '+n+'人（<span class="male">男 '+men+'</span> ／ '+
-    '<span class="female">女 '+(n-men)+'</span>）・登録 '+total+'人';
+  var cnt = '参加 '+n+'人（<span class="male">男 '+men+'</span> ／ '+
+    '<span class="female">女 '+(n-men)+'</span>）';
+  $('mcount').innerHTML = cnt + '・登録 '+total+'人';
+  $('scount').innerHTML = cnt;
   $('openAdd').disabled = total >= MAXP || state.delMode;
   $('delMode').disabled = total === 0;
   $('delMode').textContent = state.delMode ? '削除を終える' : '削除';
@@ -1149,7 +1150,7 @@ function renderRounds(){
       ? '<div class="cts">'+games+'</div>'
       : '<div class="none">参加者が4人未満のため試合を組めません</div>';
     var rest = rd.rest.length
-      ? '<div class="rest"><span class="lb">休み </span>'+rd.rest.map(function(id){ return nm(id); }).join('、')+'</div>'
+      ? '<div class="rest"><span class="lb">休み </span>'+rd.rest.map(function(id){ return nm(id); }).join('　')+'</div>'
       : '<div class="rest"><span class="lb">休み </span>なし</div>';
     h += '<div class="rd '+c+'" data-go="'+i+'" role="button" tabindex="0"'+
          ' aria-pressed="'+(c==='cur')+'" aria-label="ラウンド'+(i+1)+'">'+
