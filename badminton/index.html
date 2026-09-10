@@ -296,8 +296,8 @@ td.spark{width:30%;text-align:left}
   <p class="empty-roster" id="emptyRoster" hidden>まだ誰も登録されていません。「新規登録」から追加してください。</p>
   <div class="tools">
     <button class="btn small" id="openAdd">新規登録</button>
-    <button class="btn ghost small" id="toggleAll">全員にチェックを入れる</button>
     <button class="btn danger small" id="delMode">削除</button>
+    <button class="btn danger small" id="clearAll">全選択を解除</button>
     <span class="spacer"></span>
     <button class="btn ghost small" id="exportBtn">名簿を書き出す</button>
     <button class="btn ghost small" id="importBtn">読み込む</button>
@@ -1061,8 +1061,7 @@ function renderMembers(){
   $('openAdd').disabled = total >= MAXP || state.delMode;
   $('delMode').disabled = total === 0;
   $('delMode').textContent = state.delMode ? '削除を終える' : '削除';
-  $('toggleAll').disabled = total === 0 || state.delMode;
-  $('toggleAll').textContent = (n>0 && n===Math.min(total, MAXACTIVE)) ? '全員の選択を外す' : '参加メンバーを選ぶ';
+  $('clearAll').disabled = n === 0 || state.delMode;
   var hint = $('memberHint');
   if(state.delMode){ hint.className='hint bad'; hint.textContent='削除したメンバーは元に戻せません。'; }
   else if(n < MINP){ hint.className='hint bad'; hint.textContent='選ばれているのは'+n+'人です。対戦表を作るには4人以上必要です。'; }
@@ -1375,18 +1374,11 @@ $('importFile').addEventListener('change', function(e){
 });
 $('delMode').addEventListener('click', function(){ state.delMode = !state.delMode; render(); });
 $('delDone').addEventListener('click', function(){ state.delMode = false; render(); });
-$('toggleAll').addEventListener('click', function(){
-  var total = state.players.length, on = activeIds().length;
-  var allOn = (on>0 && on===Math.min(total, MAXACTIVE));
-  if(allOn){
-    state.players.forEach(function(p){ p['in'] = false; });
-    render(); toast('全員の選択を外しました');
-  } else {
-    var c = 0;
-    state.players.forEach(function(p){ p['in'] = (c < MAXACTIVE); if(c < MAXACTIVE) c++; });
-    render();
-    toast(total > MAXACTIVE ? '上から'+MAXACTIVE+'人を参加にしました' : '全員を参加にしました');
-  }
+$('clearAll').addEventListener('click', function(){
+  if(!activeIds().length) return;
+  state.players.forEach(function(p){ p['in'] = false; });
+  render();
+  toast('全員の選択を解除しました');
 });
 
 /* ---------- 設定・進行 ---------- */
