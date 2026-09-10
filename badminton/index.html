@@ -140,8 +140,12 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 .rd .body{min-width:0}
 .cts{display:flex;flex-wrap:wrap}                 /* 古い環境向けの保険 */
 @supports (display:grid){
-  .cts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));grid-gap:8px;gap:8px}
+  .cts{display:grid;grid-template-columns:1fr;grid-gap:8px;gap:8px}
   .cts>.ct{margin:0}
+  .cts.cn2,.cts.cn4{grid-template-columns:repeat(2,1fr)}   /* 4コートは2段×2列 */
+  .cts.cn3,.cts.cn5{grid-template-columns:repeat(3,1fr)}   /* 3コートまでは折り返さない */
+  .cts.cn3>.ct,.cts.cn5>.ct{padding-left:26px;padding-right:8px}
+  .cts.cn3>.ct .cl,.cts.cn5>.ct .cl{left:6px}
 }
 .ct{position:relative;min-width:0;background:#eef2ec;border:1px solid var(--rule);
   border-radius:8px;padding:8px 14px 9px 32px;display:flex;flex-direction:column;align-items:center;
@@ -223,8 +227,9 @@ td.spark{width:30%;text-align:left}
   .rd{--fname:32px}
   .rd{padding:9px 8px;padding-left:44px}
   .rd .rno{left:3px;width:36px;font-size:24px}
-  .cts{grid-template-columns:1fr;grid-gap:6px;gap:6px}
+  .cts,.cts.cn2,.cts.cn3,.cts.cn4,.cts.cn5{grid-template-columns:1fr;grid-gap:6px;gap:6px}
   .ct{flex:1 1 100%;margin:0 0 6px 0}
+  .cts.cn3>.ct,.cts.cn5>.ct{padding-left:32px;padding-right:6px}
   .ct{padding:7px 6px 8px 32px}
   .ct .cl{left:6px;top:50%;margin-top:-11px;font-size:18px}
   .ct .tm{white-space:nowrap}
@@ -1149,7 +1154,7 @@ function renderRounds(){
         '<span class="hr"></span>'+
         '<span class="tm">'+nm(ct.team2[0])+'・'+nm(ct.team2[1])+'</span></div>'; }).join('');
     games = games
-      ? '<div class="cts">'+games+'</div>'
+      ? '<div class="cts cn'+rd.courts.length+'">'+games+'</div>'
       : '<div class="none">参加者が4人未満のため試合を組めません</div>';
     var rest = rd.rest.length
       ? '<div class="rest"><span class="lb">休み </span>'+rd.rest.map(function(id){ return nm(id); }).join('　')+'</div>'
