@@ -16,7 +16,7 @@
   --now:#f2c230; --warn:#a8442a; --rule:#d3dbd2;
   --play:#0d4c38; --rest:#eda43a;
   --male:#12231f; --female:#cf6a12;
-  --fname:20px;
+  --fname:26px;
   --male-court:#ffffff; --female-court:#ffd39b;
   --r:10px;
 }
@@ -64,11 +64,11 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 .members{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));grid-gap:8px;gap:8px;
   max-height:48vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px}
 .member{display:flex;align-items:center;border:2px solid var(--court);
-  border-radius:9px;padding:9px 12px;background:#dff0e6;cursor:pointer;
-  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  border-radius:9px;padding:9px 12px;background:#dff0e6;cursor:pointer;touch-action:manipulation;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:rgba(18,102,75,.15)}
 .member:hover{border-color:var(--court-dark)}
 .member.off{border-color:var(--rule);border-width:1.5px;background:rgba(248,248,247,.9);padding:9.5px 12.5px}
-.member .nm{flex:1;min-width:0;font-size:18px;font-weight:700;line-height:1.4;
+.member .nm{flex:1;min-width:0;font-size:23px;font-weight:700;line-height:1.4;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .member.off .nm{color:var(--ink-30);font-weight:500}
 .member .del{margin-right:10px;border:1.5px solid var(--warn);background:#fff;color:var(--warn);
@@ -81,7 +81,7 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 .tools{display:flex;margin-top:14px;margin-bottom:-6px;flex-wrap:wrap;align-items:center}
 .tools>*{margin:0 8px 6px 0}
 .tools .spacer{flex:1 1 auto}
-.hint{font-size:12.5px;color:var(--ink-60);margin:0}
+.hint{font-size:14.5px;color:var(--ink-60);margin:0}
 .hint.bad{color:var(--warn);font-weight:500}
 .empty-roster{color:var(--ink-60);font-size:13.5px;padding:6px 0 2px}
 
@@ -108,9 +108,9 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 .setup>*{margin:0 18px 12px 0}
 .field{display:flex;flex-direction:column}
 .field label{margin-bottom:5px}
-.field label{font-size:12.5px;color:var(--ink-60);font-weight:500}
+.field label{font-size:14.5px;color:var(--ink-60);font-weight:500}
 .field select,.field input[type=number]{border:1.5px solid var(--rule);border-radius:8px;
-  padding:10px;background:#fff;min-width:104px;min-height:44px}
+  padding:10px;background:#fff;min-width:120px;min-height:50px;font-size:19px;font-weight:700}
 
 .stale{display:flex;flex-wrap:wrap;align-items:center;background:#fdf6e0;
   border:1.5px solid var(--now);border-radius:var(--r);padding:12px 14px;margin-bottom:14px}
@@ -118,9 +118,10 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 .stale .btn{margin-right:8px}
 
 /* --- ラウンド一覧 --- */
-.rlist{max-height:62vh;min-height:260px;
+.rlist{max-height:62vh;
   overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 6px 2px 2px}
 .rd{position:relative;display:block;width:100%;text-align:left;cursor:pointer;
+  touch-action:manipulation;-webkit-tap-highlight-color:rgba(18,102,75,.15);
   background:rgba(250,251,249,.9);border:1.5px solid var(--rule);border-radius:10px;
   padding:10px 11px 10px 44px;color:inherit;font-size:14px}
 .rd+.rd{margin-top:8px}
@@ -133,32 +134,32 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 .rd.cur .rno::after{content:"";display:block;width:7px;height:7px;border-radius:50%;
   background:var(--now);margin:4px auto 0}
 .rd .body{min-width:0}
-.cts{display:flex;flex-wrap:wrap;margin:0 -4px -8px}
-.ct{flex:1 1 152px;min-width:0;background:#eef2ec;border:1px solid var(--rule);border-radius:8px;
-  padding:6px 8px 7px;display:flex;flex-direction:column;align-items:center;margin:0 4px 8px}
+.cts{display:flex;flex-wrap:wrap}
+.ct{flex:1 1 222px;min-width:0;background:#eef2ec;border:1px solid var(--rule);border-radius:8px;
+  padding:6px 8px 7px;display:flex;flex-direction:column;align-items:center;margin:0 8px 8px 0}
 .ct .cl{font-size:var(--fname);font-weight:900;color:var(--ink-30);line-height:1.3}
-.ct .tm{font-size:var(--fname);font-weight:700;line-height:1.35;text-align:center;
-  word-break:keep-all;overflow-wrap:break-word}
-.ct .vsl{font-size:15px;font-weight:700;color:var(--ink-30);padding:1px 0}
-.rd.cur{--fname:22px}
+.ct .tm{font-size:var(--fname);font-weight:700;line-height:1.35;text-align:center;overflow-wrap:break-word}
+.ct .tm span{white-space:nowrap}
+.ct .vsl{font-size:17px;font-weight:700;color:var(--ink-30);padding:1px 0}
+.rd.cur{--fname:28.5px}
 .rd.cur .ct{background:var(--court);border-color:var(--court-dark)}
 .rd.cur .ct .cl,.rd.cur .ct .vsl{color:rgba(255,255,255,.72)}
 .rd.cur .ct .male{color:#fff}
 .rd.cur .ct .female{color:var(--female-court)}
-.rd .rest{font-size:var(--fname);margin-top:7px;line-height:1.4}
-.rd .rest .lb{color:var(--bench);font-weight:700;font-size:14px}
+.rd .rest{font-size:var(--fname);line-height:1.4}
+.rd .rest .lb{color:var(--bench);font-weight:700;font-size:16px}
 .rd .none{color:var(--ink-60);font-size:13px}
 
 
 /* --- 検証 --- */
 .verdict{margin-bottom:16px}
 .v+.v{margin-top:9px}
-.v{display:flex;align-items:flex-start;padding:10px 12px;border-radius:8px;
-  background:#f4f7f3;font-size:13.5px}
+.v{display:flex;align-items:flex-start;padding:12px 14px;border-radius:8px;
+  background:#f4f7f3;font-size:17px;line-height:1.55}
 .v.ng{background:#faf0ec}
-.v .mk{flex:0 0 16px;margin-right:10px;font-weight:900;color:var(--court)}
+.v .mk{flex:0 0 18px;margin-right:10px;font-size:19px;font-weight:900;color:var(--court)}
 .v.ng .mk{color:var(--warn)}
-.v b{display:block;font-size:14px}
+.v b{display:block;font-size:19px;margin-bottom:2px}
 table{width:100%;border-collapse:collapse;font-size:13.5px}
 th,td{text-align:right;padding:7px 6px;border-bottom:1px solid var(--rule);white-space:nowrap}
 th:first-child,td:first-child{text-align:left;font-weight:700}
@@ -182,8 +183,8 @@ td.spark{width:30%;text-align:left}
 .pairwarn{font-size:12.5px;color:var(--ink-60);margin-top:10px}
 .tabs{display:flex;margin-bottom:6px;flex-wrap:wrap}
 .tabs button{margin:0 6px 6px 0}
-.tabs button{border:1.5px solid var(--rule);background:#fff;border-radius:999px;padding:7px 14px;
-  font-size:13px;color:var(--ink-60);font-weight:500}
+.tabs button{border:1.5px solid var(--rule);background:#fff;border-radius:999px;padding:8px 15px;
+  font-size:15px;color:var(--ink-60);font-weight:500}
 .tabs button[aria-selected=true]{border-color:var(--court);color:var(--court);font-weight:700;background:#f0f6f2}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;
@@ -201,26 +202,26 @@ td.spark{width:30%;text-align:left}
   header svg{margin-left:10px}
   section{padding:14px 12px;border-radius:12px}
   .members{grid-template-columns:1fr;grid-gap:7px;gap:7px;max-height:44vh}
-  .member .nm{font-size:17px}
+  .member .nm{font-size:22px}
   .setup>*{margin:0 12px 10px 0}
   .field{flex:1 1 130px}
   .field select,.field input[type=number]{width:100%;min-width:0}
   .setup .btn{flex:1 1 100%}
   .setup .btn.ghost{flex:0 0 auto}
   .tools .btn{flex:1 1 auto}
-  .rlist{max-height:58vh;min-height:220px}
-  .rd{--fname:19px}
-  .rd.cur{--fname:21px}
+  .rlist{max-height:58vh}
+  .rd{--fname:25px}
+  .rd.cur{--fname:27px}
   .rd{padding:9px 8px 9px 32px}
   .rd .rno{left:4px;top:8px;width:24px;font-size:16px}
-  .cts{margin:0 0 -6px}
-  .ct{flex:1 1 100%;position:relative;padding:7px 8px 8px 38px;margin:0 0 6px}
+  .cts{margin:0}
+  .ct{flex:1 1 100%;position:relative;padding:7px 8px 8px 38px;margin:0 0 6px 0}
   .ct .cl{position:absolute;left:8px;top:50%;margin-top:-14px}
   .ct .tm{white-space:nowrap}
-  .ct .vsl{font-size:14px}
+  .ct .vsl{font-size:16px}
 
   th,td{padding:6px 5px;font-size:12.5px}
-  .tabs button{padding:7px 11px;font-size:12.5px}
+  .tabs button{padding:7px 12px;font-size:14px}
   .sheet{border-radius:14px}
 }
 @media print{
@@ -1094,6 +1095,33 @@ function renderStale(){
   $('rebuildRest').hidden = state.current === 0 || s.rounds !== b.rounds;
 }
 
+/* 現在ラウンドを中央に、前後あわせて3ラウンドが収まる高さに調整する */
+function fitList(scroll){
+  var list = $('rlist');
+  if(!list || !state.rounds) return;
+  var items = list.querySelectorAll('.rd');
+  if(!items.length) return;
+  var i = Math.min(Math.max(state.current,0), items.length-1);
+  var start = Math.max(0, Math.min(i-1, items.length-3));
+  var end = Math.min(start+3, items.length);
+  // 計測が明らかにおかしい環境ではCSSの既定値に任せる
+  var one = items[i].offsetHeight;
+  if(one < 60 || one > 520){ list.style.maxHeight = ''; return; }
+  var h = 4;
+  for(var k=start;k<end;k++) h += items[k].offsetHeight + 8;
+  var cap = Math.round((window.innerHeight || 700) * 0.8);
+  list.style.maxHeight = Math.min(h, cap) + 'px';
+  list.style.minHeight = '0';
+  if(scroll !== false){
+    var pos = 0;
+    for(var j=0;j<start;j++) pos += items[j].offsetHeight + 8;
+    list.scrollTop = Math.min(pos, Math.max(0, list.scrollHeight - list.clientHeight));
+  }
+}
+window.addEventListener('resize', function(){ fitList(false); });
+window.addEventListener('load', function(){ setTimeout(function(){ fitList(true); }, 60); });
+window.addEventListener('orientationchange', function(){ setTimeout(function(){ fitList(true); }, 300); });
+
 function renderRounds(){
   var sec = $('roundsSec');
   if(!state.rounds){ sec.hidden = true; return; }
@@ -1120,6 +1148,7 @@ function renderRounds(){
          '</div>';
   });
   $('rlist').innerHTML = h;
+  fitList(true);
 }
 
 /* ---------- 検証 ---------- */
@@ -1275,9 +1304,8 @@ function toggleMember(id){
   render();
   $('members').scrollTop = top;
 }
-$('members').addEventListener('click', function(e){
+bindTap($('members'), '[data-chk]', function(el){
   if(state.delMode) return;
-  var el = e.target.closest('[data-chk]'); if(!el) return;
   toggleMember(el.dataset.chk);
 });
 $('members').addEventListener('keydown', function(e){
@@ -1373,16 +1401,41 @@ $('rebuildAll').addEventListener('click', function(){
 $('rebuildRest').addEventListener('click', function(){
   if(buildSchedule(state.current)){ render(); toast('ラウンド'+(state.current+1)+'以降を組み直しました'); }
 });
+/* タップ処理: iOSの遅延・取りこぼしを避けるため touchend も拾う */
+function bindTap(el, selector, handler){
+  var moved = false, done = 0;
+  function find(t){ return (t && t.closest) ? t.closest(selector) : null; }
+  el.addEventListener('touchstart', function(){ moved = false; });
+  el.addEventListener('touchmove', function(){ moved = true; });
+  el.addEventListener('touchend', function(e){
+    if(moved) return;
+    var hit = find(e.target); if(!hit) return;
+    e.preventDefault();          // 直後の click を抑止
+    done = Date.now();
+    handler(hit);
+  });
+  el.addEventListener('click', function(e){
+    if(Date.now() - done < 700) return;
+    var hit = find(e.target); if(hit) handler(hit);
+  });
+}
+
+/* 再描画せずクラスだけ差し替える (反応を軽くする) */
 function pickRound(el){
   if(!el) return;
-  state.current = parseInt(el.dataset.go,10);
-  var top = $('rlist').scrollTop;
-  render();
-  $('rlist').scrollTop = top;
+  var i = parseInt(el.dataset.go,10);
+  if(isNaN(i)) return;
+  state.current = i;
+  var items = $('rlist').querySelectorAll('.rd');
+  for(var k=0;k<items.length;k++){
+    items[k].className = 'rd ' + (k<i ? 'done' : (k===i ? 'cur' : ''));
+    items[k].setAttribute('aria-pressed', String(k===i));
+  }
+  renderStale();
+  fitList(true);
+  save();
 }
-$('rlist').addEventListener('click', function(e){
-  var b = e.target.closest('[data-go]'); pickRound(b);
-});
+bindTap($('rlist'), '[data-go]', pickRound);
 $('rlist').addEventListener('keydown', function(e){
   if(e.key!=='Enter' && e.key!==' ') return;
   var b = e.target.closest('[data-go]'); if(!b) return;
