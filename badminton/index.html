@@ -65,8 +65,8 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
   max-height:48vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px}
 .member{display:flex;align-items:center;border:2px solid var(--court);
   border-radius:9px;padding:9px 12px;background:#dff0e6;cursor:pointer;touch-action:manipulation;
-  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:rgba(18,102,75,.15)}
-.member:hover{border-color:var(--court-dark)}
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+@media (hover:hover){ .member:hover{border-color:var(--court-dark)} }
 .member.off{border-color:var(--rule);border-width:1.5px;background:rgba(248,248,247,.9);padding:9.5px 12.5px}
 .member .nm{flex:1;min-width:0;font-size:23px;font-weight:700;line-height:1.4;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -120,19 +120,20 @@ section{background:var(--panel);border:1px solid var(--rule);border-radius:var(-
 /* --- ラウンド一覧 --- */
 .rlist{max-height:62vh;
   overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 6px 2px 2px}
-.rd{position:relative;display:block;width:100%;text-align:left;cursor:pointer;
-  touch-action:manipulation;-webkit-tap-highlight-color:rgba(18,102,75,.15);
+.rd{position:relative;display:block;width:100%;text-align:left;cursor:pointer;padding-left:54px;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
   background:rgba(250,251,249,.9);border:1.5px solid var(--rule);border-radius:10px;
-  padding:10px 11px 10px 44px;color:inherit;font-size:14px}
+  padding:10px 11px;color:inherit;font-size:14px}
 .rd+.rd{margin-top:8px}
-.rd:hover{border-color:var(--court)}
+@media (hover:hover){ .rd:hover{border-color:var(--court)} }
 .rd.done{opacity:.5}
 .rd.cur{background:#fdf7e3;border-color:var(--now);box-shadow:inset 4px 0 0 var(--court)}
-.rd .rno{position:absolute;left:9px;top:9px;width:28px;text-align:center;
-  font-weight:900;font-size:17px;line-height:1.35;color:var(--ink-30)}
+.rd .rno{position:absolute;left:8px;top:50%;width:38px;text-align:center;
+  -webkit-transform:translateY(-50%);transform:translateY(-50%);
+  font-weight:900;font-size:var(--fname);line-height:1.15;color:var(--ink-30)}
 .rd.cur .rno{color:var(--court)}
-.rd.cur .rno::after{content:"";display:block;width:7px;height:7px;border-radius:50%;
-  background:var(--now);margin:4px auto 0}
+.rd.cur .rno::after{content:"";display:block;width:8px;height:8px;border-radius:50%;
+  background:var(--now);margin:5px auto 0}
 .rd .body{min-width:0}
 .cts{display:flex;flex-wrap:wrap}
 .ct{flex:1 1 222px;min-width:0;background:#eef2ec;border:1px solid var(--rule);border-radius:8px;
@@ -212,8 +213,8 @@ td.spark{width:30%;text-align:left}
   .rlist{max-height:58vh}
   .rd{--fname:25px}
   .rd.cur{--fname:27px}
-  .rd{padding:9px 8px 9px 32px}
-  .rd .rno{left:4px;top:8px;width:24px;font-size:16px}
+  .rd{padding:9px 8px;padding-left:42px}
+  .rd .rno{left:3px;width:34px}
   .cts{margin:0}
   .ct{flex:1 1 100%;position:relative;padding:7px 8px 8px 38px;margin:0 0 6px 0}
   .ct .cl{position:absolute;left:8px;top:50%;margin-top:-14px}
@@ -1107,9 +1108,10 @@ function fitList(scroll){
   // 計測が明らかにおかしい環境ではCSSの既定値に任せる
   var one = items[i].offsetHeight;
   if(one < 60 || one > 520){ list.style.maxHeight = ''; return; }
-  var h = 4;
+  var h = 8;
   for(var k=start;k<end;k++) h += items[k].offsetHeight + 8;
-  var cap = Math.round((window.innerHeight || 700) * 0.8);
+  var vh = window.innerHeight || 700;
+  var cap = Math.max(240, vh - 90);
   list.style.maxHeight = Math.min(h, cap) + 'px';
   list.style.minHeight = '0';
   if(scroll !== false){
@@ -1119,7 +1121,10 @@ function fitList(scroll){
   }
 }
 window.addEventListener('resize', function(){ fitList(false); });
-window.addEventListener('load', function(){ setTimeout(function(){ fitList(true); }, 60); });
+window.addEventListener('load', function(){
+  setTimeout(function(){ fitList(true); }, 60);
+  setTimeout(function(){ fitList(true); }, 900);   // Webフォント読み込み後
+});
 window.addEventListener('orientationchange', function(){ setTimeout(function(){ fitList(true); }, 300); });
 
 function renderRounds(){
