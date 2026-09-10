@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>いろり ダブルス対戦表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#12231f; --ink-60:#5b6f69; --ink-30:#9aaaa4;
+  --paper:#e9efe7; --panel:rgba(255,255,255,.95);
+  --court:#12664b; --court-dark:#0d4c38;
+  --bench:#41607a; --bench-soft:#e3eaef;
+  --now:#f2c230; --warn:#a8442a; --rule:#d3dbd2;
+  --play:#0d4c38; --rest:#eda43a;
+  --male:#12231f; --female:#cf6a12;
+  --fname:20px;
+  --male-court:#ffffff; --female-court:#ffd39b;
+  --r:10px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Zen Kaku Gothic New",-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+  font-size:15px; line-height:1.65; font-variant-numeric:tabular-nums;
+  -webkit-text-size-adjust:100%;
+}
+.bg{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:-1;pointer-events:none}
+.bg svg{width:100%;height:100%;display:block}
+.wrap{max-width:960px;margin:0 auto;padding:20px 16px 80px}
+h1{font-size:22px;font-weight:900;margin:0}
+h2{font-size:16px;font-weight:700;margin:0 0 12px;display:flex;align-items:baseline;flex-wrap:wrap}
+h2>*+*{margin-left:10px}
+h2 .note{font-size:12.5px;font-weight:400;color:var(--ink-60)}
+p{margin:0 0 10px}
+button{font-family:inherit;font-size:14px;cursor:pointer}
+input,select{font-family:inherit;font-size:15px;color:var(--ink)}
+.male{color:var(--male)} .female{color:var(--female)}
+
+header{display:flex;justify-content:space-between;align-items:flex-end;
+  padding-bottom:14px;border-bottom:2px solid var(--court);margin-bottom:20px}
+header .sub{font-size:12.5px;color:var(--ink-60);margin-top:2px}
+header svg{width:32px;height:32px;flex:none;margin-left:16px}
+
+.btn{background:var(--court);color:#fff;border:none;border-radius:var(--r);
+  padding:11px 18px;font-weight:700;min-height:44px}
+.btn:hover{background:var(--court-dark)}
+.btn.ghost{background:rgba(255,255,255,.7);color:var(--court);border:1.5px solid var(--court)}
+.btn.ghost:hover{background:rgba(18,102,75,.1)}
+.btn.danger{background:#fff;color:var(--warn);border:1.5px solid var(--warn)}
+.btn.danger:hover{background:#fbf0ec}
+.btn.small{padding:8px 13px;font-size:13px;border-radius:8px;min-height:38px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+:focus-visible{outline:2.5px solid var(--now);outline-offset:2px}
+
+section{background:var(--panel);border:1px solid var(--rule);border-radius:var(--r);
+  padding:18px;margin-bottom:14px}
+
+/* --- メンバー --- */
+.members{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));grid-gap:8px;gap:8px;
+  max-height:48vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px}
+.member{display:flex;align-items:center;border:2px solid var(--court);
+  border-radius:9px;padding:9px 12px;background:#dff0e6;cursor:pointer;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.member:hover{border-color:var(--court-dark)}
+.member.off{border-color:var(--rule);border-width:1.5px;background:rgba(248,248,247,.9);padding:9.5px 12.5px}
+.member .nm{flex:1;min-width:0;font-size:18px;font-weight:700;line-height:1.4;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member.off .nm{color:var(--ink-30);font-weight:500}
+.member .del{margin-right:10px;border:1.5px solid var(--warn);background:#fff;color:var(--warn);
+  width:34px;height:34px;border-radius:8px;font-size:16px;line-height:1;padding:0;flex:none}
+.member .del:hover{background:var(--warn);color:#fff}
+.delmode .member{border-color:var(--warn);background:rgba(251,242,238,.9);cursor:default}
+.delbar{display:flex;align-items:center;flex-wrap:wrap;background:#fbf0ec;
+  border:1.5px solid var(--warn);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.delbar .msg{flex:1 1 200px;margin-right:10px;font-size:13.5px;font-weight:500;color:var(--warn)}
+.tools{display:flex;margin-top:14px;margin-bottom:-6px;flex-wrap:wrap;align-items:center}
+.tools>*{margin:0 8px 6px 0}
+.tools .spacer{flex:1 1 auto}
+.hint{font-size:12.5px;color:var(--ink-60);margin:0}
+.hint.bad{color:var(--warn);font-weight:500}
+.empty-roster{color:var(--ink-60);font-size:13.5px;padding:6px 0 2px}
+
+/* --- 新規登録ポップアップ --- */
+.modal{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+  background:rgba(18,35,31,.45);padding:16px}
+.sheet{background:#fff;border-radius:14px;padding:20px;width:100%;max-width:380px;
+  box-shadow:0 18px 50px rgba(0,0,0,.3)}
+.sheet h3{margin:0 0 4px;font-size:17px;font-weight:900}
+.sheet .lead{font-size:12.5px;color:var(--ink-60);margin:0 0 14px}
+.sheet label{display:block;font-size:12.5px;color:var(--ink-60);font-weight:500;margin-bottom:5px}
+.sheet input[type=text]{width:100%;border:1.5px solid var(--rule);border-radius:8px;
+  padding:11px;min-height:46px;margin-bottom:14px}
+.seg{display:flex;border:1.5px solid var(--rule);border-radius:8px;overflow:hidden;background:#fff;margin-bottom:18px}
+.seg button{flex:1;border:none;background:none;min-height:46px;font-weight:700;color:var(--ink-30)}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.seg button[aria-pressed=true][data-g=f]{background:var(--female)}
+.mact{display:flex}
+.mact>*+*{margin-left:8px}
+.mact .btn{flex:1}
+
+/* --- 設定 --- */
+.setup{display:flex;flex-wrap:wrap;align-items:flex-end;margin-bottom:-12px}
+.setup>*{margin:0 18px 12px 0}
+.field{display:flex;flex-direction:column}
+.field label{margin-bottom:5px}
+.field label{font-size:12.5px;color:var(--ink-60);font-weight:500}
+.field select,.field input[type=number]{border:1.5px solid var(--rule);border-radius:8px;
+  padding:10px;background:#fff;min-width:104px;min-height:44px}
+
+.stale{display:flex;flex-wrap:wrap;align-items:center;background:#fdf6e0;
+  border:1.5px solid var(--now);border-radius:var(--r);padding:12px 14px;margin-bottom:14px}
+.stale .msg{flex:1 1 220px;font-size:13.5px;font-weight:500;margin-right:10px}
+.stale .btn{margin-right:8px}
+
+/* --- ラウンド一覧 --- */
+.rlist{max-height:62vh;min-height:260px;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 6px 2px 2px}
+.rd{position:relative;display:block;width:100%;text-align:left;cursor:pointer;
+  background:rgba(250,251,249,.9);border:1.5px solid var(--rule);border-radius:10px;
+  padding:10px 11px 10px 44px;color:inherit;font-size:14px}
+.rd+.rd{margin-top:8px}
+.rd:hover{border-color:var(--court)}
+.rd.done{opacity:.5}
+.rd.cur{background:#fdf7e3;border-color:var(--now);box-shadow:inset 4px 0 0 var(--court)}
+.rd .rno{position:absolute;left:9px;top:9px;width:28px;text-align:center;
+  font-weight:900;font-size:17px;line-height:1.35;color:var(--ink-30)}
+.rd.cur .rno{color:var(--court)}
+.rd.cur .rno::after{content:"";display:block;width:7px;height:7px;border-radius:50%;
+  background:var(--now);margin:4px auto 0}
+.rd .body{min-width:0}
+.cts{display:flex;flex-wrap:wrap;margin:0 -4px -8px}
+.ct{flex:1 1 152px;min-width:0;background:#eef2ec;border:1px solid var(--rule);border-radius:8px;
+  padding:6px 8px 7px;display:flex;flex-direction:column;align-items:center;margin:0 4px 8px}
+.ct .cl{font-size:var(--fname);font-weight:900;color:var(--ink-30);line-height:1.3}
+.ct .tm{font-size:var(--fname);font-weight:700;line-height:1.35;text-align:center;
+  word-break:keep-all;overflow-wrap:break-word}
+.ct .vsl{font-size:15px;font-weight:700;color:var(--ink-30);padding:1px 0}
+.rd.cur{--fname:22px}
+.rd.cur .ct{background:var(--court);border-color:var(--court-dark)}
+.rd.cur .ct .cl,.rd.cur .ct .vsl{color:rgba(255,255,255,.72)}
+.rd.cur .ct .male{color:#fff}
+.rd.cur .ct .female{color:var(--female-court)}
+.rd .rest{font-size:var(--fname);margin-top:7px;line-height:1.4}
+.rd .rest .lb{color:var(--bench);font-weight:700;font-size:14px}
+.rd .none{color:var(--ink-60);font-size:13px}
+
+
+/* --- 検証 --- */
+.verdict{margin-bottom:16px}
+.v+.v{margin-top:9px}
+.v{display:flex;align-items:flex-start;padding:10px 12px;border-radius:8px;
+  background:#f4f7f3;font-size:13.5px}
+.v.ng{background:#faf0ec}
+.v .mk{flex:0 0 16px;margin-right:10px;font-weight:900;color:var(--court)}
+.v.ng .mk{color:var(--warn)}
+.v b{display:block;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:right;padding:7px 6px;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;font-weight:700}
+th{font-size:12px;color:var(--ink-60);font-weight:500}
+td.spark{width:30%;text-align:left}
+.bar{display:inline-block;height:9px;border-radius:3px;background:var(--play);vertical-align:middle}
+.bar.rest{background:var(--rest)}
+.dots{display:flex}
+.dots i{width:11px;height:11px;border-radius:3px;background:#dfe4dd;display:block;margin-right:3px}
+.dots i.r{background:var(--rest)} .dots i.g{background:var(--play)}
+.dots i.x{background:transparent;border:1px dashed var(--ink-30)}
+.key{display:inline-block;margin-right:12px}
+.key i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
+.key i.g{background:var(--play)} .key i.r{background:var(--rest)}
+.key i.x{border:1px dashed var(--ink-30)}
+.mx td,.mx th{text-align:center;padding:6px 7px}
+.mx td:first-child,.mx th:first-child{position:-webkit-sticky;position:sticky;left:0;background:#fff;text-align:left;
+  box-shadow:1px 0 0 var(--rule)}
+.mx td.z{color:#cdd5cd} .mx td.d{color:var(--warn);font-weight:700}
+.mx td.self{color:#cdd5cd;background:#f6f8f4}
+.pairwarn{font-size:12.5px;color:var(--ink-60);margin-top:10px}
+.tabs{display:flex;margin-bottom:6px;flex-wrap:wrap}
+.tabs button{margin:0 6px 6px 0}
+.tabs button{border:1.5px solid var(--rule);background:#fff;border-radius:999px;padding:7px 14px;
+  font-size:13px;color:var(--ink-60);font-weight:500}
+.tabs button[aria-selected=true]{border-color:var(--court);color:var(--court);font-weight:700;background:#f0f6f2}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;
+  padding:11px 18px;border-radius:999px;font-size:13.5px;font-weight:500;z-index:30;max-width:92vw;
+  text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.22)}
+@media (prefers-reduced-motion:no-preference){
+  .toast{animation:rise .22s ease-out}
+  @keyframes rise{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+}
+@media(max-width:560px){
+  body{font-size:14.5px}
+  .wrap{padding:14px 11px 72px}
+  h1{font-size:19px}
+  header{margin-bottom:16px}
+  header svg{margin-left:10px}
+  section{padding:14px 12px;border-radius:12px}
+  .members{grid-template-columns:1fr;grid-gap:7px;gap:7px;max-height:44vh}
+  .member .nm{font-size:17px}
+  .setup>*{margin:0 12px 10px 0}
+  .field{flex:1 1 130px}
+  .field select,.field input[type=number]{width:100%;min-width:0}
+  .setup .btn{flex:1 1 100%}
+  .setup .btn.ghost{flex:0 0 auto}
+  .tools .btn{flex:1 1 auto}
+  .rlist{max-height:58vh;min-height:220px}
+  .rd{--fname:19px}
+  .rd.cur{--fname:21px}
+  .rd{padding:9px 8px 9px 32px}
+  .rd .rno{left:4px;top:8px;width:24px;font-size:16px}
+  .cts{margin:0 0 -6px}
+  .ct{flex:1 1 100%;position:relative;padding:7px 8px 8px 38px;margin:0 0 6px}
+  .ct .cl{position:absolute;left:8px;top:50%;margin-top:-14px}
+  .ct .tm{white-space:nowrap}
+  .ct .vsl{font-size:14px}
+
+  th,td{padding:6px 5px;font-size:12.5px}
+  .tabs button{padding:7px 11px;font-size:12.5px}
+  .sheet{border-radius:14px}
+}
+@media print{
+  body{background:#fff}
+  .bg,.noprint{display:none!important}
+  section{break-inside:avoid;border-color:#bbb;background:#fff}
+  .rd{border-color:#bbb;background:#fff}
+}
+</style>
+</head>
+<body>
+
+<div class="bg" aria-hidden="true">
+<svg viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#f2f6ef"/>
+      <stop offset="0.55" stop-color="#e6eee6"/>
+      <stop offset="1" stop-color="#dae7dc"/>
+    </linearGradient>
+    <g id="shuttle" stroke="#12664b" stroke-opacity=".42" stroke-width="1.5" fill="none"
+       stroke-linejoin="round" stroke-linecap="round">
+      <path d="M-7 -5 L-16.5 -40 a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0
+               a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0 L7 -5 Z" fill="#ffffff" fill-opacity=".55"/>
+      <path d="M-4.2 -5 L-9.9 -39 M-1.5 -5 L-3.4 -39 M1.5 -5 L3.4 -39 M4.2 -5 L9.9 -39"
+            stroke-opacity=".24"/>
+      <path d="M-13 -28 Q0 -24.5 13 -28 M-10 -17 Q0 -13.8 10 -17" stroke-opacity=".26"/>
+      <circle cx="0" cy="1.5" r="8" fill="#12664b" fill-opacity=".26"/>
+      <path d="M-4 -1.5 a4.6 4.6 0 0 1 4.2 -3" stroke-opacity=".3" stroke-width="1.2"/>
+    </g>
+  </defs>
+  <rect width="1200" height="900" fill="url(#sky)"/>
+  <g transform="translate(600,470) rotate(-15) translate(-402,-183)"
+     fill="none" stroke="#12664b" stroke-opacity=".15" stroke-width="2.5">
+    <rect x="0" y="0" width="804" height="366" rx="2"/>
+    <path d="M0 27.5 H804 M0 338.5 H804"/>
+    <path d="M283 0 V366 M521 0 V366"/>
+    <path d="M46 0 V366 M758 0 V366"/>
+    <path d="M0 183 H283 M521 183 H804"/>
+    <path d="M402 -26 V392" stroke-opacity=".28" stroke-dasharray="7 6"/>
+  </g>
+  <g id="shuttles"></g>
+</svg>
+</div>
+
+<div class="wrap">
+
+<header>
+  <h1>いろり ダブルス対戦表</h1>
+  <svg class="noprint" viewBox="-20 -46 40 60" aria-hidden="true" stroke="#12664b" fill="none"
+       stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M-7 -5 L-16.5 -40 a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0
+             a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0 L7 -5 Z"/>
+    <path d="M-13 -28 Q0 -24.5 13 -28" stroke-width="1.3" stroke-opacity=".5"/>
+    <circle cx="0" cy="1.5" r="8" fill="#12664b" stroke="none"/>
+  </svg>
+</header>
+
+<section class="noprint">
+  <h2>メンバー <span class="note" id="mcount"></span></h2>
+  <div class="delbar" id="delbar" hidden>
+    <span class="msg">削除するメンバーの × を押してください。</span>
+    <button class="btn ghost small" id="delDone">やめる</button>
+  </div>
+  <div class="members" id="members"></div>
+  <p class="empty-roster" id="emptyRoster" hidden>まだ誰も登録されていません。「新規登録」から追加してください。</p>
+  <div class="tools">
+    <button class="btn small" id="openAdd">新規登録</button>
+    <button class="btn ghost small" id="toggleAll">全員にチェックを入れる</button>
+    <button class="btn danger small" id="delMode">削除</button>
+    <span class="spacer"></span>
+    <button class="btn ghost small" id="exportBtn">名簿を書き出す</button>
+    <button class="btn ghost small" id="importBtn">読み込む</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+  </div>
+  <p class="hint" id="memberHint" style="margin-top:10px"></p>
+</section>
+
+<section class="noprint">
+  <h2>試合の設定</h2>
+  <div class="setup">
+    <div class="field">
+      <label for="courts">使うコート数</label>
+      <select id="courts"></select>
+    </div>
+    <div class="field">
+      <label for="nrounds">ラウンド数</label>
+      <input type="number" id="nrounds" min="1" max="40" step="1" value="12">
+    </div>
+    <button class="btn" id="build">対戦表をつくる</button>
+  </div>
+  <p class="hint" id="setupHint" style="margin-top:10px"></p>
+</section>
+
+<div class="stale noprint" id="stale" hidden>
+  <span class="msg" id="staleMsg"></span>
+  <button class="btn small" id="rebuildRest">ここから組み直す</button>
+  <button class="btn ghost small" id="rebuildAll">最初からつくり直す</button>
+</div>
+
+<section id="roundsSec" hidden>
+  <h2>ラウンド <span class="note" id="roundsNote"></span></h2>
+  <div class="rlist" id="rlist"></div>
+</section>
+
+<section id="statSec" hidden>
+  <h2>フェアネス検証</h2>
+  <div class="verdict" id="verdict"></div>
+  <div class="tabs" id="tabs">
+    <button data-t="pair" aria-selected="true">A ペア</button>
+    <button data-t="player" aria-selected="false">B・C 試合と休み</button>
+    <button data-t="gap" aria-selected="false">D 休みの間隔</button>
+    <button data-t="opp" aria-selected="false">対戦相手</button>
+  </div>
+  <div class="scroll" id="statBody"></div>
+</section>
+
+</div>
+
+<div class="modal noprint" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <h3 id="mtitle">メンバーを新規登録</h3>
+    <p class="lead">続けて登録できます。終わったら閉じてください。</p>
+    <label for="newName">名前</label>
+    <input type="text" id="newName" maxlength="8" placeholder="例: さとう" autocomplete="off">
+    <label>性別</label>
+    <div class="seg" id="seg" role="group" aria-label="性別">
+      <button type="button" data-g="m" aria-pressed="true">男性</button>
+      <button type="button" data-g="f" aria-pressed="false">女性</button>
+    </div>
+    <div class="mact">
+      <button class="btn ghost" id="mClose">閉じる</button>
+      <button class="btn" id="mAdd">登録する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   バドミントン・ダブルス 対戦表ジェネレータ
+   - 焼きなまし法(Simulated Annealing)で公平性コストを最小化する
+   - ブラウザ / Node どちらでも動く UMD ライク な作り
+   ========================================================================== */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.BadSched = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  /* ---------- 乱数 (再現性のため seed 付き) ---------- */
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* ---------- コスト重み ----------
+     CANON = 最終評価に使う正準コスト。探索は複数のプロファイルで走らせ、
+     出来上がった解を CANON で比べて一番良いものを採用する。            */
+  var CANON = {
+    PAIR: 1200,   // 同じペアの重複 (条件4) : 最重要
+    OPP: 26,      // 同じ相手との対戦回数の偏り (条件7)
+    REST: 2600,   // 休み回数の偏り (条件5)
+    CONSEC: 1400, // 理論下限を超える連続休み (条件6)
+    GAP: 45       // 休みの間隔の詰まり (D)
+  };
+  var PROFILES = [
+    CANON,
+    { PAIR: 1200, OPP: 26, REST: 6000, CONSEC: 7000, GAP: 260 },  // 休み優先
+    { PAIR: 3200, OPP: 60, REST: 2600, CONSEC: 500, GAP: 20 },    // ペア優先
+    { PAIR: 1200, OPP: 8, REST: 3400, CONSEC: 2600, GAP: 120 }
+  ];
+  var W = CANON;
+
+  /* ==========================================================================
+     Solver
+     ========================================================================== */
+  function Solver(cfg, rng, weights) {
+    this.W = weights || CANON;
+    this.R = cfg.rounds;
+    this.P = cfg.numPlayers;
+    this.rng = rng;
+    this.active = cfg.activeByRound;      // [r] -> [pid...]
+    this.courts = cfg.courtsByRound;      // [r] -> int
+    this.locked = cfg.locked || [];       // [r] -> perm(Array) | null
+    var P = this.P, R = this.R;
+
+    this.pair = new Int32Array(P * P);
+    this.opp = new Int32Array(P * P);
+    this.costPair = 0;
+    this.costOpp = 0;
+
+    this.presentFlag = new Uint8Array(R * P);
+    for (var r = 0; r < R; r++) {
+      if (this.courts[r] < 1) continue;   // 試合が組めないラウンドは集計外
+      for (var k = 0; k < this.active[r].length; k++)
+        this.presentFlag[r * P + this.active[r][k]] = 1;
+    }
+
+    this.restFlag = new Uint8Array(R * P);
+    this.perm = new Array(R);
+    this.free = [];
+    for (var r2 = 0; r2 < R; r2++) {
+      if (this.locked[r2]) { this.perm[r2] = this.locked[r2].slice(); }
+      else { this.perm[r2] = this.active[r2].slice(); this.free.push(r2); }
+    }
+
+    /* 休み回数の目標値: 出場可能ラウンド数に比例して配分 */
+    var totalRest = 0, totalPresence = 0;
+    for (var r3 = 0; r3 < R; r3++) {
+      if (this.courts[r3] < 1) continue;
+      totalRest += this.active[r3].length - 4 * this.courts[r3];
+      totalPresence += this.active[r3].length;
+    }
+    var ratio = totalPresence > 0 ? totalRest / totalPresence : 0;
+    this.restTarget = new Float64Array(P);
+    this.presentCount = new Int32Array(P);
+    for (var r4 = 0; r4 < R; r4++) {
+      if (this.courts[r4] < 1) continue;
+      for (var k2 = 0; k2 < this.active[r4].length; k2++)
+        this.presentCount[this.active[r4][k2]]++;
+    }
+    for (var p = 0; p < P; p++) this.restTarget[p] = ratio * this.presentCount[p];
+    this.restRatio = ratio;
+
+    this.restCount = new Int32Array(P);
+  }
+
+  /* --- 1ラウンド分の集計を加算(sign=+1)/減算(sign=-1) --- */
+  Solver.prototype._apply = function (r, sign) {
+    var P = this.P, perm = this.perm[r], c = this.courts[r];
+    for (var i = 0; i < c; i++) {
+      var a = perm[i * 4], b = perm[i * 4 + 1], x = perm[i * 4 + 2], y = perm[i * 4 + 3];
+      this._bump(this.pair, a, b, sign, 1);
+      this._bump(this.pair, x, y, sign, 1);
+      this._bump(this.opp, a, x, sign, 0);
+      this._bump(this.opp, a, y, sign, 0);
+      this._bump(this.opp, b, x, sign, 0);
+      this._bump(this.opp, b, y, sign, 0);
+    }
+    if (c < 1) return;
+    for (var j = c * 4; j < perm.length; j++) {
+      var q = perm[j];
+      this.restFlag[r * P + q] = sign > 0 ? 1 : 0;
+      this.restCount[q] += sign;
+    }
+  };
+
+  /* count が k -> k+1 のとき コストは +k / k -> k-1 のとき -(k-1) : f(k)=k(k-1)/2 */
+  Solver.prototype._bump = function (mat, a, b, sign, isPair) {
+    var P = this.P, i = a < b ? a * P + b : b * P + a;
+    var k = mat[i];
+    if (sign > 0) { mat[i] = k + 1; if (isPair) this.costPair += k; else this.costOpp += k; }
+    else { mat[i] = k - 1; if (isPair) this.costPair -= (k - 1); else this.costOpp -= (k - 1); }
+  };
+
+  /* --- 休み関連のコスト (回数の偏り / 連続休み / 間隔) --- */
+  Solver.prototype._restCost = function (Wt) {
+    var P = this.P, R = this.R, cost = 0;
+    var buf = this._buf || (this._buf = new Int32Array(R));
+    for (var p = 0; p < P; p++) {
+      var L = this.presentCount[p];
+      if (L === 0) continue;
+      var k = this.restCount[p];
+      var d = k - this.restTarget[p];
+      cost += Wt.REST * d * d;
+      if (k < 2) continue;
+
+      // 出場可能ラウンドだけを詰めた並びでの休みの位置
+      var m = 0, t = 0;
+      for (var r = 0; r < R; r++) {
+        if (!this.presentFlag[r * P + p]) continue;
+        if (this.restFlag[r * P + p]) buf[m++] = t;
+        t++;
+      }
+      var adj = 0;
+      var expGap = L / k;
+      for (var i = 1; i < m; i++) {
+        var gap = buf[i] - buf[i - 1];
+        if (gap === 1) adj++;
+        var sh = expGap - gap;
+        if (sh > 0) cost += Wt.GAP * sh * sh;
+      }
+      // 連続休みの理論的下限 (L個の枠に k回休むときに避けられない隣接数)
+      var minAdj = 2 * k - L - 1; if (minAdj < 0) minAdj = 0;
+      if (adj > minAdj) cost += Wt.CONSEC * (adj - minAdj);
+    }
+    return cost;
+  };
+
+  Solver.prototype.totalCost = function () {
+    var Wt = this.W;
+    return Wt.PAIR * this.costPair + Wt.OPP * this.costOpp + this._restCost(Wt);
+  };
+  Solver.prototype.canonCost = function () {
+    return CANON.PAIR * this.costPair + CANON.OPP * this.costOpp + this._restCost(CANON);
+  };
+
+  /* --- 初期解: 休み不足の人を優先的に休ませる貪欲法 --- */
+  Solver.prototype.init = function () {
+    var P = this.P;
+    this.pair.fill(0); this.opp.fill(0); this.restFlag.fill(0);
+    this.restCount.fill(0); this.costPair = 0; this.costOpp = 0;
+    var self = this;
+    for (var r = 0; r < this.R; r++) {
+      if (!this.locked[r]) {
+        var list = this.active[r].slice();
+        var need = list.length - 4 * this.courts[r];
+        var prevRest = {};
+        if (r > 0) for (var q = 0; q < P; q++) if (this.restFlag[(r - 1) * P + q]) prevRest[q] = 1;
+        // 休ませたい度合いでソート
+        list.sort(function (a, b) {
+          var ra = self.restCount[a] - self.restTarget[a] * (r / self.R);
+          var rb = self.restCount[b] - self.restTarget[b] * (r / self.R);
+          var pa = (prevRest[a] ? 1 : 0), pb = (prevRest[b] ? 1 : 0);
+          if (pa !== pb) return pa - pb;
+          if (ra !== rb) return ra - rb;
+          return self.rng() - 0.5;
+        });
+        var rest = list.slice(0, need);
+        var play = list.slice(need);
+        for (var i = play.length - 1; i > 0; i--) {
+          var j = (self.rng() * (i + 1)) | 0; var t = play[i]; play[i] = play[j]; play[j] = t;
+        }
+        this.perm[r] = play.concat(rest);
+      }
+      this._apply(r, 1);
+    }
+    return this.totalCost();
+  };
+
+  /* --- ラウンド r の スロット i, j を入れ替える --- */
+  Solver.prototype._swap = function (r, i, j) {
+    this._apply(r, -1);
+    var perm = this.perm[r], t = perm[i]; perm[i] = perm[j]; perm[j] = t;
+    this._apply(r, 1);
+  };
+
+  Solver.prototype._idx = function (r, p) {
+    var a = this.perm[r];
+    for (var i = 0; i < a.length; i++) if (a[i] === p) return i;
+    return -1;
+  };
+
+  /* 出場数を変えずに「休むラウンドだけ」を2人の間で交換する複合手 */
+  Solver.prototype._tradeRest = function (r1, r2, p, q) {
+    var i1 = this._idx(r1, p), j1 = this._idx(r1, q);
+    var i2 = this._idx(r2, p), j2 = this._idx(r2, q);
+    this._swap(r1, i1, j1);
+    this._swap(r2, i2, j2);
+    return [r1, i1, j1, r2, i2, j2];
+  };
+
+  Solver.prototype.anneal = function (iters, t0, t1) {
+    if (this.free.length === 0) return this.totalCost();
+    var cur = this.totalCost(), rng = this.rng;
+    var freeUsable = [], restRounds = [];
+    for (var f = 0; f < this.free.length; f++) {
+      var r = this.free[f];
+      if (this.active[r].length >= 2 && this.courts[r] >= 1) freeUsable.push(r);
+      if (this.active[r].length > 4 * this.courts[r] && this.courts[r] >= 1) restRounds.push(r);
+    }
+    if (freeUsable.length === 0) return cur;
+
+    for (var it = 0; it < iters; it++) {
+      var T = t0 * Math.pow(t1 / t0, it / iters);
+      var useTrade = restRounds.length >= 2 && rng() < 0.3;
+
+      if (useTrade) {
+        var r1 = restRounds[(rng() * restRounds.length) | 0];
+        var r2 = restRounds[(rng() * restRounds.length) | 0];
+        if (r1 === r2) continue;
+        var n1 = this.perm[r1].length, np1 = this.courts[r1] * 4;
+        var n2 = this.perm[r2].length, np2 = this.courts[r2] * 4;
+        var p = this.perm[r1][np1 + ((rng() * (n1 - np1)) | 0)];   // r1で休みの人
+        var q = this.perm[r2][np2 + ((rng() * (n2 - np2)) | 0)];   // r2で休みの人
+        if (p === q) continue;
+        var ip2 = this._idx(r2, p), iq1 = this._idx(r1, q);
+        if (ip2 < 0 || ip2 >= np2) continue;   // pがr2で出場していること
+        if (iq1 < 0 || iq1 >= np1) continue;   // qがr1で出場していること
+        var mv = this._tradeRest(r1, r2, p, q);
+        var nx = this.totalCost(), dd = nx - cur;
+        if (dd <= 0 || rng() < Math.exp(-dd / T)) { cur = nx; }
+        else { this._swap(mv[3], mv[4], mv[5]); this._swap(mv[0], mv[1], mv[2]); }
+        continue;
+      }
+
+      var rr = freeUsable[(rng() * freeUsable.length) | 0];
+      var n = this.perm[rr].length, np = this.courts[rr] * 4;
+      var i = (rng() * n) | 0, j = (rng() * n) | 0;
+      if (i === j) continue;
+      if (i >= np && j >= np) continue;                 // 休み同士 → 無意味
+      if (i < np && j < np && (i >> 1) === (j >> 1)) continue; // 同じペア内 → 無意味
+      this._swap(rr, i, j);
+      var next = this.totalCost();
+      var d = next - cur;
+      if (d <= 0 || rng() < Math.exp(-d / T)) { cur = next; }
+      else { this._swap(rr, i, j); }
+    }
+    return cur;
+  };
+
+  Solver.prototype.loadFrom = function (snap) {
+    for (var r = 0; r < this.R; r++) this.perm[r] = snap[r].slice();
+    this.pair.fill(0); this.opp.fill(0); this.restFlag.fill(0);
+    this.restCount.fill(0); this.costPair = 0; this.costOpp = 0;
+    for (var r2 = 0; r2 < this.R; r2++) this._apply(r2, 1);
+    return this.totalCost();
+  };
+
+  Solver.prototype.snapshot = function () {
+    var out = [];
+    for (var r = 0; r < this.R; r++) out.push(this.perm[r].slice());
+    return out;
+  };
+
+  /* ==========================================================================
+     公開API
+     ========================================================================== */
+  function buildRounds(perm, courts, activeLen) {
+    var courtsArr = [];
+    for (var i = 0; i < courts; i++)
+      courtsArr.push({ team1: [perm[i * 4], perm[i * 4 + 1]], team2: [perm[i * 4 + 2], perm[i * 4 + 3]] });
+    return { courts: courtsArr, rest: perm.slice(courts * 4) };
+  }
+
+  /**
+   * @param {Object} cfg
+   *   rounds        : 総ラウンド数 (既定 12)
+   *   numPlayers    : 内部インデックスの総数
+   *   activeByRound : [r] -> 参加者インデックス配列
+   *   maxCourts     : コート数上限
+   *   locked        : [r] -> {courts:[{team1,team2}],rest:[]} | null (確定済ラウンド)
+   *   effort        : 計算量スケール (既定 1)
+   *   seed          : 乱数シード
+   */
+  function generate(cfg) {
+    var R = cfg.rounds || 12;
+    var courtsByRound = [];
+    for (var r = 0; r < R; r++) {
+      var n = cfg.activeByRound[r].length;
+      courtsByRound.push(Math.max(0, Math.min(cfg.maxCourts, Math.floor(n / 4))));
+    }
+    var lockedPerm = [];
+    for (var r2 = 0; r2 < R; r2++) {
+      var L = cfg.locked && cfg.locked[r2];
+      if (L) {
+        var perm = [];
+        for (var c = 0; c < L.courts.length; c++)
+          perm = perm.concat(L.courts[c].team1, L.courts[c].team2);
+        perm = perm.concat(L.rest);
+        lockedPerm.push(perm);
+        courtsByRound[r2] = L.courts.length;
+      } else lockedPerm.push(null);
+    }
+
+    var effort = cfg.effort || 1;
+    var maxN = 0;
+    for (var r3 = 0; r3 < R; r3++) maxN = Math.max(maxN, cfg.activeByRound[r3].length);
+    var restarts = Math.max(4, Math.round(8 * effort));
+    var iters = Math.round((9000 + maxN * 2200) * effort * Math.max(0.5, R / 12));
+
+    var best = null, bestCost = Infinity;
+    for (var t = 0; t < restarts; t++) {
+      var rng = mulberry32((cfg.seed || 12345) + t * 7919);
+      var s = new Solver({
+        rounds: R, numPlayers: cfg.numPlayers, activeByRound: cfg.activeByRound,
+        courtsByRound: courtsByRound, locked: lockedPerm
+      }, rng, PROFILES[t % PROFILES.length]);
+      s.init();
+      s.anneal(iters, 6000, 0.4);
+      var c1 = s.canonCost();
+      if (best === null || c1 < bestCost) { bestCost = c1; best = s.snapshot(); }
+    }
+
+    // 仕上げ: 正準コストで低温焼きなまし
+    var polish = new Solver({
+      rounds: R, numPlayers: cfg.numPlayers, activeByRound: cfg.activeByRound,
+      courtsByRound: courtsByRound, locked: lockedPerm
+    }, mulberry32((cfg.seed || 12345) + 104729), CANON);
+    polish.loadFrom(best);
+    polish.anneal(Math.round(iters * 1.5), 700, 0.05);
+    if (polish.canonCost() < bestCost) { bestCost = polish.canonCost(); best = polish.snapshot(); }
+
+    var rounds = [];
+    for (var r4 = 0; r4 < R; r4++)
+      rounds.push(buildRounds(best[r4], courtsByRound[r4], cfg.activeByRound[r4].length));
+
+    return { rounds: rounds, cost: bestCost, courtsByRound: courtsByRound };
+  }
+
+  /* ==========================================================================
+     公平性の検証 (A:ペア重複 B:試合数 C:休み数 D:休み間隔)
+     ========================================================================== */
+  /* --- 二部b-マッチング(最大流)で「重複なしに使えるペア数」を求める --- */
+  function maxFreePairs(groups, cands) {
+    var used = groups.map(function () { return 0; });
+    var owner = groups.map(function () { return []; });
+    var assign = {};
+    function augment(pk, visited) {
+      var gs = cands[pk];
+      for (var i = 0; i < gs.length; i++) {
+        var g = gs[i];
+        if (visited[g]) continue;
+        visited[g] = 1;
+        if (used[g] < groups[g].cap) {
+          assign[pk] = g; used[g]++; owner[g].push(pk); return true;
+        }
+        for (var j = 0; j < owner[g].length; j++) {
+          var pk2 = owner[g][j];
+          if (augment(pk2, visited)) {
+            owner[g].splice(j, 1); used[g]--;
+            assign[pk] = g; used[g]++; owner[g].push(pk); return true;
+          }
+        }
+      }
+      return false;
+    }
+    var total = 0;
+    Object.keys(cands).forEach(function (pk) {
+      if (augment(pk, {})) total++;
+    });
+    return total;
+  }
+
+  function analyze(rounds, players, lockedCount) {
+    var idx = {}, ids = players.map(function (p) { return p.id; });
+    ids.forEach(function (id, i) { idx[id] = i; });
+    var n = ids.length;
+    var pairCnt = {}, oppCnt = {};
+    var games = {}, rests = {}, restRounds = {}, playedRounds = {}, presentRounds = {};
+    ids.forEach(function (id) {
+      games[id] = 0; rests[id] = 0; restRounds[id] = []; playedRounds[id] = []; presentRounds[id] = 0;
+    });
+    var key = function (a, b) { return a < b ? a + '|' + b : b + '|' + a; };
+
+    rounds.forEach(function (rd, ri) {
+      var seen = {};
+      rd.courts.forEach(function (c) {
+        var t = [c.team1, c.team2];
+        t.forEach(function (tm) {
+          var k = key(tm[0], tm[1]);
+          pairCnt[k] = (pairCnt[k] || 0) + 1;
+        });
+        c.team1.forEach(function (a) {
+          c.team2.forEach(function (b) { var k = key(a, b); oppCnt[k] = (oppCnt[k] || 0) + 1; });
+        });
+        t.forEach(function (tm) {
+          tm.forEach(function (p) {
+            if (games[p] === undefined) return;
+            games[p]++; playedRounds[p].push(ri); seen[p] = 1;
+          });
+        });
+      });
+      rd.rest.forEach(function (p) {
+        if (rests[p] === undefined) return;
+        rests[p]++; restRounds[p].push(ri); seen[p] = 1;
+      });
+      Object.keys(seen).forEach(function (p) { if (presentRounds[p] !== undefined) presentRounds[p]++; });
+    });
+
+    // 同じラウンドに居合わせたことのある組 (ペア重複の理論下限に使う)
+    var coPresent = {};
+    rounds.forEach(function (rd) {
+      var here = [];
+      rd.courts.forEach(function (c) { here = here.concat(c.team1, c.team2); });
+      here = here.concat(rd.rest);
+      for (var i = 0; i < here.length; i++)
+        for (var j = i + 1; j < here.length; j++) coPresent[key(here[i], here[j])] = 1;
+    });
+    var coPresentCount = Object.keys(coPresent).length;
+
+    // ペア重複の理論下限:
+    //   確定済ラウンドで既に使われたペアは「もう一度使うと重複」になるため候補から外し、
+    //   残りのラウンドについて「重複なしで使えるペア数」を最大流で求める。
+    var L = lockedCount || 0;
+    var usedLocked = {}, dupLocked = 0, freeSlots = 0;
+    var gsig = {}, glist = [];
+    rounds.forEach(function (rd, ri) {
+      var here = [];
+      rd.courts.forEach(function (c) { here = here.concat(c.team1, c.team2); });
+      here = here.concat(rd.rest);
+      if (ri < L) {
+        rd.courts.forEach(function (c) {
+          [c.team1, c.team2].forEach(function (tm) {
+            var k = key(tm[0], tm[1]);
+            if (usedLocked[k]) dupLocked++; else usedLocked[k] = 1;
+          });
+        });
+        return;
+      }
+      freeSlots += rd.courts.length * 2;
+      var sig = here.slice().sort().join(',');
+      if (gsig[sig] === undefined) { gsig[sig] = glist.length; glist.push({ cap: 0, members: here.slice() }); }
+      glist[gsig[sig]].cap += rd.courts.length * 2;
+    });
+    var cands = {};
+    glist.forEach(function (g, gi) {
+      for (var i = 0; i < g.members.length; i++)
+        for (var j = i + 1; j < g.members.length; j++) {
+          var k = key(g.members[i], g.members[j]);
+          if (usedLocked[k]) continue;
+          if (!cands[k]) cands[k] = [];
+          if (cands[k].indexOf(gi) < 0) cands[k].push(gi);
+        }
+    });
+    var freeUsable = glist.length ? maxFreePairs(glist, cands) : 0;
+    var minDup = dupLocked + Math.max(0, freeSlots - freeUsable);
+
+    // 各プレイヤーの期待試合数 (在籍ラウンドの出場率の合計)
+    var expGames = {};
+    ids.forEach(function (id) { expGames[id] = 0; });
+    rounds.forEach(function (rd) {
+      var here = [];
+      rd.courts.forEach(function (c) { here = here.concat(c.team1, c.team2); });
+      here = here.concat(rd.rest);
+      if (!here.length || !rd.courts.length) return;
+      var rate = rd.courts.length * 4 / here.length;
+      here.forEach(function (p) { if (expGames[p] !== undefined) expGames[p] += rate; });
+    });
+    var maxGameDev = 0;
+    ids.forEach(function (id) {
+      var d2 = Math.abs(games[id] - expGames[id]);
+      if (d2 > maxGameDev) maxGameDev = d2;
+    });
+    var samePresence = ids.every(function (id) { return presentRounds[id] === presentRounds[ids[0]]; });
+
+    // A: ペア
+    var pairList = Object.keys(pairCnt).map(function (k) { return { k: k, c: pairCnt[k] }; });
+    var maxPair = 0, dupPairs = 0, totalPairSlots = 0;
+    pairList.forEach(function (x) {
+      maxPair = Math.max(maxPair, x.c); totalPairSlots += x.c;
+      if (x.c > 1) dupPairs += x.c - 1;
+    });
+    // D: 休みの間隔 (連続休み) と その理論下限
+    var consec = 0, minGap = Infinity, minConsecTheory = 0, gapInfo = {};
+    ids.forEach(function (id) {
+      var rs = restRounds[id], L = presentRounds[id], k = rs.length;
+      var mn = Infinity, mx = 0, adj = 0;
+      for (var i = 1; i < rs.length; i++) {
+        var g = rs[i] - rs[i - 1];
+        if (g < mn) mn = g;
+        if (g > mx) mx = g;
+        if (g === 1) { consec++; adj++; }
+      }
+      minGap = Math.min(minGap, mn);
+      var floorAdj = Math.max(0, 2 * k - L - 1);
+      minConsecTheory += floorAdj;
+      gapInfo[id] = {
+        min: mn === Infinity ? null : mn, max: mx || null,
+        adj: adj, floorAdj: floorAdj, rounds: rs.slice()
+      };
+    });
+    var gv = ids.map(function (i) { return games[i]; });
+    var rv = ids.map(function (i) { return rests[i]; });
+    var oppList = Object.keys(oppCnt).map(function (k) { return oppCnt[k]; });
+
+    return {
+      pairCnt: pairCnt, oppCnt: oppCnt, games: games, rests: rests,
+      restRounds: restRounds, presentRounds: presentRounds,
+      maxPair: maxPair, dupPairs: dupPairs, distinctPairs: pairList.length,
+      totalPairSlots: totalPairSlots, coPresentPairs: coPresentCount,
+      minDupTheory: minDup,
+      expGames: expGames, maxGameDev: maxGameDev, samePresence: samePresence,
+      gameMin: Math.min.apply(null, gv), gameMax: Math.max.apply(null, gv),
+      restMin: Math.min.apply(null, rv), restMax: Math.max.apply(null, rv),
+      oppMax: oppList.length ? Math.max.apply(null, oppList) : 0,
+      consecutiveRests: consec, minConsecTheory: minConsecTheory, gapInfo: gapInfo,
+      minRestGap: minGap === Infinity ? null : minGap
+    };
+  }
+
+  return { generate: generate, analyze: analyze, mulberry32: mulberry32, W: W };
+});
+
+</script>
+<script>
+(function(){
+'use strict';
+var COURT_LETTERS = 'ABCDEFGH';
+var MAXP = 32, MAXACTIVE = 16, MINP = 4, DEF_ROUNDS = 12, KEY = 'irori-badminton:roster';
+var $ = function(id){ return document.getElementById(id); };
+var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){
+  return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); };
+
+var state = {
+  players: [], ghosts: [],
+  maxCourts: 1, nrounds: DEF_ROUNDS,
+  rounds: null, roundActive: null, current: 0,
+  builtWith: null, courtsTouched: false, lockedUpto: 0,
+  tab: 'pair', newSex: 'm', delMode: false, lastN: -1
+};
+
+function uid(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function activeIds(){ return state.players.filter(function(p){return p['in'];}).map(function(p){return p.id;}); }
+function findP(id){
+  var r = state.players.filter(function(x){return x.id===id;})[0];
+  return r || state.ghosts.filter(function(x){return x.id===id;})[0];
+}
+function nameOf(id){ var p=findP(id); return p?p.name:'?'; }
+function cls(id){ var p=findP(id); return (p&&p.sex==='f')?'female':'male'; }
+function nm(id){ return '<span class="'+cls(id)+'">'+esc(nameOf(id))+'</span>'; }
+function maxCourtsFor(n){ return Math.max(1, Math.floor(n/4)); }
+function R(){ return state.rounds ? state.rounds.length : state.nrounds; }
+
+/* ---------- 自動保存 ---------- */
+var storeMode = 'none';
+/* 保存するのは名簿とラウンド数だけ。対戦表は保存しない */
+function payload(){
+  return { v:4, nrounds:state.nrounds,
+    players: state.players.map(function(p){ return {id:p.id, name:p.name, sex:p.sex, in:p['in']}; }) };
+}
+function save(){
+  var json;
+  try{ json = JSON.stringify(payload()); }catch(e){ return; }
+  if(storeMode==='cloud'){ try{ window.storage.set(KEY, json); }catch(e){} return; }
+  if(storeMode==='local'){ try{ window.localStorage.setItem(KEY, json); }
+    catch(e){ storeMode='none'; } }
+}
+function restore(d){
+  if(!d || !d.players) return;
+  var cnt = 0;
+  state.players = d.players.filter(function(p){ return p && p.name; }).slice(0, MAXP)
+    .map(function(p){ var on = p['in']!==false && cnt < MAXACTIVE; if(on) cnt++;
+      return { id:p.id||uid(), name:String(p.name).slice(0,8), sex:p.sex==='f'?'f':'m', in:on }; });
+  if(d.nrounds) state.nrounds = Math.max(1, Math.min(40, d.nrounds|0));
+}
+function load(cb){
+  try{
+    if(window.storage && window.storage.get){
+      storeMode = 'cloud';
+      window.storage.get(KEY).then(function(res){
+        try{ if(res && res.value) restore(JSON.parse(res.value)); }catch(e){}
+        cb();
+      }).catch(function(){ cb(); });
+      return;
+    }
+  }catch(e){}
+  try{
+    window.localStorage.setItem(KEY+':t','1'); window.localStorage.removeItem(KEY+':t');
+    storeMode = 'local';
+    var v = window.localStorage.getItem(KEY);
+    if(v) restore(JSON.parse(v));
+  }catch(e){ storeMode = 'none'; }
+  cb();
+}
+
+/* ---------- 生成 ---------- */
+function currentSig(){
+  return { ids: activeIds().slice().sort().join(','), courts: state.maxCourts, rounds: state.nrounds };
+}
+function isStale(){
+  if(!state.rounds || !state.builtWith) return false;
+  var s = currentSig(), b = state.builtWith;
+  return s.ids!==b.ids || s.courts!==b.courts || s.rounds!==b.rounds;
+}
+function buildSchedule(fromRound){
+  var act = activeIds();
+  if(act.length < MINP){ toast('参加メンバーが'+MINP+'人以上必要です'); return false; }
+  var nr = Math.max(1, Math.min(40, state.nrounds|0));
+  state.nrounds = nr;
+  if(!(state.maxCourts >= 1)) state.maxCourts = maxCourtsFor(act.length);
+  state.maxCourts = Math.min(state.maxCourts, maxCourtsFor(act.length));
+
+  var idList = [], seen = {};
+  function push(id){ if(!seen[id]){ seen[id]=1; idList.push(id); } }
+  state.players.forEach(function(p){ push(p.id); });
+  state.ghosts.forEach(function(p){ push(p.id); });
+  if(state.roundActive) state.roundActive.forEach(function(a){ a.forEach(push); });
+  var idx = {}; idList.forEach(function(id,i){ idx[id]=i; });
+
+  var activeByRound = [], locked = [];
+  for(var r=0;r<nr;r++){
+    var keep = fromRound>0 && r<fromRound && state.rounds && state.rounds[r] && state.roundActive[r];
+    var ids = keep ? state.roundActive[r] : act;
+    activeByRound.push(ids.map(function(id){ return idx[id]; }));
+    if(keep){
+      var rd = state.rounds[r];
+      locked.push({
+        courts: rd.courts.map(function(c){ return {
+          team1: c.team1.map(function(id){return idx[id];}),
+          team2: c.team2.map(function(id){return idx[id];}) }; }),
+        rest: rd.rest.map(function(id){ return idx[id]; }) });
+    } else locked.push(null);
+  }
+
+  var out = BadSched.generate({
+    rounds: nr, numPlayers: idList.length, activeByRound: activeByRound,
+    maxCourts: state.maxCourts, locked: locked,
+    seed: (Math.random()*1e9)|0, effort: 1 });
+
+  state.rounds = out.rounds.map(function(rd){ return {
+    courts: rd.courts.map(function(c){ return {
+      team1: c.team1.map(function(i){ return idList[i]; }),
+      team2: c.team2.map(function(i){ return idList[i]; }) }; }),
+    rest: rd.rest.map(function(i){ return idList[i]; }) }; });
+  state.roundActive = activeByRound.map(function(a){ return a.map(function(i){ return idList[i]; }); });
+  state.builtWith = currentSig();
+  state.lockedUpto = fromRound > 0 ? fromRound : 0;
+  if(state.current > nr-1) state.current = nr-1;
+  return true;
+}
+
+/* ---------- 描画 ---------- */
+function render(){ renderMembers(); renderSetup(); renderStale(); renderRounds(); renderStats(); save(); }
+
+function renderMembers(){
+  var h = '';
+  state.players.forEach(function(p){
+    h += '<div class="member'+(p['in']?'':' off')+'"'+
+      (state.delMode ? '' : ' role="checkbox" tabindex="0" aria-checked="'+(p['in']?'true':'false')+
+        '" data-chk="'+p.id+'"')+'>'+
+      (state.delMode
+        ? '<button class="del" data-del="'+p.id+'" aria-label="'+esc(p.name)+' を削除">×</button>'
+        : '')+
+      '<span class="nm '+(p.sex==='f'?'female':'male')+'">'+esc(p.name)+'</span>'+
+      '</div>';
+  });
+  $('members').innerHTML = h;
+  $('members').className = 'members' + (state.delMode ? ' delmode' : '');
+  $('delbar').hidden = !state.delMode;
+  $('emptyRoster').hidden = state.players.length > 0;
+  var n = activeIds().length, total = state.players.length;
+  var men = state.players.filter(function(p){ return p['in'] && p.sex!=='f'; }).length;
+  $('mcount').innerHTML = '参加 '+n+'人（<span class="male">男 '+men+'</span> ／ '+
+    '<span class="female">女 '+(n-men)+'</span>）・登録 '+total+'人';
+  $('openAdd').disabled = total >= MAXP || state.delMode;
+  $('delMode').disabled = total === 0;
+  $('delMode').textContent = state.delMode ? '削除を終える' : '削除';
+  $('toggleAll').disabled = total === 0 || state.delMode;
+  $('toggleAll').textContent = (n>0 && n===Math.min(total, MAXACTIVE)) ? '全員の選択を外す' : '参加メンバーを選ぶ';
+  var hint = $('memberHint');
+  if(state.delMode){ hint.className='hint bad'; hint.textContent='削除したメンバーは元に戻せません。'; }
+  else if(n < MINP){ hint.className='hint bad'; hint.textContent='選ばれているのは'+n+'人です。対戦表を作るには4人以上必要です。'; }
+  else if(n >= MAXACTIVE){ hint.className='hint'; hint.textContent='参加登録は16人までです。'; }
+  else if(total >= MAXP){ hint.className='hint'; hint.textContent='名簿の登録は32人までです。'; }
+  else { hint.className='hint'; hint.textContent='緑にハイライトされた人だけが試合に入ります。タップで切り替えできます。'; }
+}
+
+function renderSetup(){
+  var n = activeIds().length, mx = maxCourtsFor(n), sel = $('courts'), h = '';
+  if(n !== state.lastN){ state.lastN = n; state.courtsTouched = false; }
+  if(!state.courtsTouched) state.maxCourts = mx;
+  if(state.maxCourts > mx) state.maxCourts = mx;
+  for(var c=1;c<=mx;c++) h += '<option value="'+c+'"'+(c===state.maxCourts?' selected':'')+'>'+c+' コート</option>';
+  sel.innerHTML = h; sel.disabled = n < MINP;
+  $('nrounds').value = state.nrounds;
+  $('build').disabled = n < MINP;
+  var per = 4*state.maxCourts, rest = n - per, t = $('setupHint');
+  if(n < MINP){ t.className='hint bad'; t.textContent='参加者が4人になると対戦表を作れます。'; return; }
+  t.className='hint';
+  t.textContent = '1ラウンドあたり '+per+'人が試合、'+rest+'人が休み。'+
+    (rest>0 ? state.nrounds+'ラウンドで1人あたり約'+(Math.round(rest*state.nrounds/n*10)/10)+'回の休みになります。'
+            : '全員が毎回試合に出ます。');
+}
+
+function renderStale(){
+  var bar = $('stale');
+  if(!isStale()){ bar.hidden = true; return; }
+  bar.hidden = false;
+  var b = state.builtWith, s = currentSig(), msgs = [];
+  if(s.ids !== b.ids) msgs.push('メンバー');
+  if(s.courts !== b.courts) msgs.push('コート数');
+  if(s.rounds !== b.rounds) msgs.push('ラウンド数');
+  $('staleMsg').textContent = msgs.join('と')+'が変わっています。いまの対戦表は変更前のままです。';
+  $('rebuildRest').textContent = 'ラウンド'+(state.current+1)+'以降を組み直す';
+  $('rebuildRest').hidden = state.current === 0 || s.rounds !== b.rounds;
+}
+
+function renderRounds(){
+  var sec = $('roundsSec');
+  if(!state.rounds){ sec.hidden = true; return; }
+  sec.hidden = false;
+  $('roundsNote').textContent = '全'+R()+'ラウンド　タップでプレイ中のラウンドを切り替え';
+  var h = '';
+  state.rounds.forEach(function(rd,i){
+    var c = i < state.current ? 'done' : (i===state.current ? 'cur' : '');
+    var games = rd.courts.map(function(ct,ci){
+      return '<div class="ct"><span class="cl">'+COURT_LETTERS.charAt(ci)+'</span>'+
+        '<span class="tm">'+nm(ct.team1[0])+'・'+nm(ct.team1[1])+'</span>'+
+        '<span class="vsl">vs</span>'+
+        '<span class="tm">'+nm(ct.team2[0])+'・'+nm(ct.team2[1])+'</span></div>'; }).join('');
+    games = games
+      ? '<div class="cts">'+games+'</div>'
+      : '<div class="none">参加者が4人未満のため試合を組めません</div>';
+    var rest = rd.rest.length
+      ? '<div class="rest"><span class="lb">休み </span>'+rd.rest.map(function(id){ return nm(id); }).join('、')+'</div>'
+      : '<div class="rest"><span class="lb">休み </span>なし</div>';
+    h += '<div class="rd '+c+'" data-go="'+i+'" role="button" tabindex="0"'+
+         ' aria-pressed="'+(c==='cur')+'" aria-label="ラウンド'+(i+1)+'">'+
+         '<div class="rno">'+(i+1)+'</div>'+
+         '<div class="body">'+games+rest+'</div>'+
+         '</div>';
+  });
+  $('rlist').innerHTML = h;
+}
+
+/* ---------- 検証 ---------- */
+function renderStats(){
+  var sec = $('statSec');
+  if(!state.rounds || !state.roundActive){ sec.hidden = true; return; }
+  var pool = state.players.concat(state.ghosts).filter(function(p){
+    return state.roundActive.some(function(a){ return a.indexOf(p.id)>=0; }); });
+  if(!pool.length){ sec.hidden = true; return; }
+  sec.hidden = false;
+  var a = BadSched.analyze(state.rounds, pool, state.lockedUpto);
+  var ids = pool.map(function(p){return p.id;});
+  var nR = R();
+
+  var v = [];
+  var dupOK = a.dupPairs === a.minDupTheory;
+  v.push(vline(a.maxPair<=1 || dupOK, 'A 同じペアの発生回数',
+    a.maxPair<=1 ? '重複なし。'+a.distinctPairs+'組すべてが1回だけのペアです。'
+      : '最大'+a.maxPair+'回、重複は'+a.dupPairs+'回。'+
+        (dupOK ? '人数とラウンド数から避けられない最小値です（理論下限'+a.minDupTheory+'回）。'
+               : '理論下限は'+a.minDupTheory+'回です。')));
+  var gd = a.gameMax-a.gameMin, dev = Math.round(a.maxGameDev*10)/10;
+  v.push(vline(a.samePresence ? gd<=1 : dev<=1.0, 'B 各プレイヤーの試合数',
+    a.samePresence ? (gd===0 ? '全員'+a.gameMin+'試合で完全に同数です。'
+        : '最少'+a.gameMin+'試合／最多'+a.gameMax+'試合。差は'+gd+'試合'+(gd<=1?'（割り切れないための1試合差）':'')+'。')
+      : '途中参加・離脱があるため在籍ラウンド数に応じた期待値と比べています。ずれは最大'+dev+'試合、実数では'+a.gameMin+'〜'+a.gameMax+'試合です。'));
+  var rdif = a.restMax-a.restMin;
+  v.push(vline(a.samePresence ? rdif<=1 : dev<=1.0, 'C 各プレイヤーの休みの数',
+    a.samePresence ? (rdif===0 ? '全員'+a.restMin+'回で完全に同数です。'
+        : '最少'+a.restMin+'回／最多'+a.restMax+'回。差は'+rdif+'回'+(rdif<=1?'（割り切れないための1回差）':'')+'。')
+      : '在籍ラウンドあたりの休みの割合をそろえています。ずれは最大'+dev+'回、実数では'+a.restMin+'〜'+a.restMax+'回です。'));
+  var okGap = a.consecutiveRests <= a.minConsecTheory;
+  v.push(vline(okGap, 'D 各プレイヤーの休みの間隔',
+    a.consecutiveRests===0 ? '連続で休むプレイヤーはいません。'
+      : '連続休みは'+a.consecutiveRests+'箇所。'+
+        (okGap ? 'コート数に対して人数が多く、これ以上は減らせません（理論下限'+a.minConsecTheory+'箇所）。'
+               : '理論下限は'+a.minConsecTheory+'箇所。もう一度つくり直すと減ることがあります。')));
+  $('verdict').innerHTML = v.join('');
+
+  Array.prototype.forEach.call($('tabs').children, function(b){
+    b.setAttribute('aria-selected', String(b.dataset.t===state.tab)); });
+
+  var body = '';
+  if(state.tab==='pair'){
+    var pk = function(x,y){ return x<y ? x+'|'+y : y+'|'+x; };
+    var rows = Object.keys(a.pairCnt).map(function(k){ return a.pairCnt[k]; });
+    var dupN = rows.filter(function(c){return c>1;}).length;
+    body = '<table class="mx"><tr><th>ペア</th>'+ids.map(function(i){return '<th>'+nm(i)+'</th>';}).join('')+'</tr>'+
+      ids.map(function(i){ return '<tr><td>'+nm(i)+'</td>'+ids.map(function(j){
+        if(i===j) return '<td class="self">–</td>';
+        var c = a.pairCnt[pk(i,j)]||0;
+        return '<td class="'+(c===0?'z':(c>1?'d':''))+'">'+c+'</td>';
+      }).join('')+'</tr>'; }).join('')+'</table>'+
+      '<p class="pairwarn">同じ人と組んだ回数です。'+
+      (dupN ? '2回以上のマスは'+dupN+'組（オレンジ）。重複の合計は'+a.dupPairs+'回で、'+
+              (a.dupPairs===a.minDupTheory?'これがこの人数での最小値です':'理論下限は'+a.minDupTheory+'回です')+'。'
+            : '重複はありません。')+
+      ' 必要なペア枠は'+a.totalPairSlots+'、組み合わせは全'+a.coPresentPairs+'通りです。</p>';
+  } else if(state.tab==='player'){
+    var gmax = a.gameMax||1, rmax = a.restMax||1;
+    body = '<table><tr><th>プレイヤー</th><th>試合</th><th class="spark">試合数</th><th>休み</th><th class="spark">休み</th><th>在籍</th><th>期待差</th></tr>'+
+      ids.map(function(id){
+        var dv = Math.round((a.games[id]-a.expGames[id])*10)/10;
+        return '<tr><td>'+nm(id)+'</td><td>'+a.games[id]+'</td>'+
+          '<td class="spark"><i class="bar" style="width:'+(a.games[id]/gmax*100)+'%"></i></td>'+
+          '<td>'+a.rests[id]+'</td>'+
+          '<td class="spark"><i class="bar rest" style="width:'+(rmax?a.rests[id]/rmax*100:0)+'%"></i></td>'+
+          '<td>'+a.presentRounds[id]+'R</td>'+
+          '<td'+(Math.abs(dv)>1?' style="color:#a8442a"':'')+'>'+(dv>0?'+':'')+dv+'</td></tr>'; }).join('')+
+      '</table><p class="pairwarn"><span class="key"><i class="g"></i>試合数</span><span class="key"><i class="r"></i>休み</span>　「期待差」は在籍ラウンドの出場率から計算した理論値とのずれです。1未満なら偏りはありません。</p>';
+  } else if(state.tab==='gap'){
+    body = '<p class="pairwarn" style="margin:0 0 10px">'+
+      '<span class="key"><i class="g"></i>試合</span>'+
+      '<span class="key"><i class="r"></i>休み</span>'+
+      '<span class="key"><i class="x"></i>不参加</span></p>'+
+      '<table><tr><th>プレイヤー</th><th class="spark">R1 → R'+nR+'</th><th>最短</th><th>最長</th><th>連続</th></tr>'+
+      ids.map(function(id){
+        var g = a.gapInfo[id], dots='';
+        for(var r=0;r<nR;r++){
+          var here = state.roundActive[r].indexOf(id)>=0;
+          var resting = state.rounds[r].rest.indexOf(id)>=0;
+          dots += '<i class="'+(!here?'x':(resting?'r':'g'))+'"></i>';
+        }
+        return '<tr><td>'+nm(id)+'</td><td class="spark"><span class="dots">'+dots+'</span></td>'+
+          '<td>'+(g.min?g.min+'R':'—')+'</td><td>'+(g.max?g.max+'R':'—')+'</td>'+
+          '<td>'+g.adj+(g.floorAdj?' / 下限'+g.floorAdj:'')+'</td></tr>'; }).join('')+
+      '</table><p class="pairwarn">「最短」は休みと休みの間隔です。2R以上なら連続では休んでいません。</p>';
+  } else {
+    var om = {}; ids.forEach(function(i){ om[i]={}; });
+    Object.keys(a.oppCnt).forEach(function(k){ var p=k.split('|');
+      if(om[p[0]]) om[p[0]][p[1]]=a.oppCnt[k];
+      if(om[p[1]]) om[p[1]][p[0]]=a.oppCnt[k]; });
+    body = '<table class="mx"><tr><th>対戦</th>'+ids.map(function(i){return '<th>'+nm(i)+'</th>';}).join('')+'</tr>'+
+      ids.map(function(i){ return '<tr><td>'+nm(i)+'</td>'+ids.map(function(j){
+        if(i===j) return '<td class="self">–</td>';
+        var c = om[i][j]||0;
+        return '<td class="'+(c===0?'z':(c>=3?'d':''))+'">'+c+'</td>';
+      }).join('')+'</tr>'; }).join('')+'</table>'+
+      '<p class="pairwarn">同じ相手と対戦した回数。最大'+a.oppMax+'回です。</p>';
+  }
+  $('statBody').innerHTML = body;
+}
+function vline(ok, title, text){
+  return '<div class="v'+(ok?'':' ng')+'"><span class="mk">'+(ok?'✓':'!')+'</span><span><b>'+title+'</b>'+esc(text)+'</span></div>';
+}
+
+var tt;
+function toast(msg){
+  var el = document.querySelector('.toast'); if(el) el.remove();
+  el = document.createElement('div'); el.className='toast'; el.textContent=msg;
+  document.body.appendChild(el);
+  clearTimeout(tt); tt=setTimeout(function(){ el.remove(); }, 3000);
+}
+
+/* ---------- 新規登録ポップアップ ---------- */
+function openModal(){
+  if(state.players.length >= MAXP){ toast('名簿の登録は'+MAXP+'人までです'); return; }
+  $('modal').hidden = false;
+  $('newName').value = '';
+  setTimeout(function(){ $('newName').focus(); }, 30);
+}
+function closeModal(){ $('modal').hidden = true; }
+function addPlayer(){
+  if(state.players.length >= MAXP){ toast('名簿の登録は'+MAXP+'人までです'); closeModal(); return; }
+  var v = $('newName').value.trim();
+  if(!v){ $('newName').focus(); return; }
+  var joinable = activeIds().length < MAXACTIVE;
+  state.players.push({ id:uid(), name:v.slice(0,8), sex:state.newSex, in:joinable });
+  $('newName').value = ''; $('newName').focus();
+  render();
+  toast(v+' を登録しました' + (joinable ? '' : '（参加は16人までのため未選択）'));
+  if(state.players.length >= MAXP) closeModal();
+}
+$('seg').addEventListener('click', function(e){
+  var g = e.target.dataset.g; if(!g) return;
+  state.newSex = g;
+  Array.prototype.forEach.call(this.children, function(b){
+    b.setAttribute('aria-pressed', String(b.dataset.g===g)); });
+});
+$('openAdd').addEventListener('click', openModal);
+$('mAdd').addEventListener('click', addPlayer);
+$('mClose').addEventListener('click', closeModal);
+$('modal').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+$('newName').addEventListener('keydown', function(e){ if(e.key==='Enter') addPlayer(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !$('modal').hidden) closeModal(); });
+
+/* ---------- メンバー操作 ---------- */
+function toggleMember(id){
+  var p = findP(id); if(!p) return;
+  if(!p['in'] && activeIds().length >= MAXACTIVE){ toast('参加登録は'+MAXACTIVE+'人までです'); return; }
+  p['in'] = !p['in'];
+  var top = $('members').scrollTop;
+  render();
+  $('members').scrollTop = top;
+}
+$('members').addEventListener('click', function(e){
+  if(state.delMode) return;
+  var el = e.target.closest('[data-chk]'); if(!el) return;
+  toggleMember(el.dataset.chk);
+});
+$('members').addEventListener('keydown', function(e){
+  if(e.key!=='Enter' && e.key!==' ') return;
+  var el = e.target.closest('[data-chk]'); if(!el) return;
+  e.preventDefault(); toggleMember(el.dataset.chk);
+});
+$('members').addEventListener('click', function(e){
+  var dl = e.target.dataset.del; if(!dl) return;
+  var q = findP(dl); if(!q) return;
+  if(!window.confirm(q.name+' を名簿から削除します。よろしいですか？')) return;
+  var used = state.roundActive && state.roundActive.some(function(arr){ return arr.indexOf(dl)>=0; });
+  if(used) state.ghosts.push({ id:q.id, name:q.name, sex:q.sex });
+  state.players = state.players.filter(function(x){ return x.id!==dl; });
+  if(!state.players.length) state.delMode = false;
+  render();
+  toast(q.name+' を削除しました');
+});
+function exportRoster(){
+  if(!state.players.length){ toast('登録されたメンバーがいません'); return; }
+  var data = { app:'irori-badminton', version:4, savedAt:new Date().toISOString(),
+    players: state.players.map(function(p){ return {name:p.name, sex:p.sex, in:p['in']}; }) };
+  var text = JSON.stringify(data, null, 2), url;
+  try{ url = URL.createObjectURL(new Blob([text],{type:'application/json'})); }
+  catch(e){ url = 'data:application/json;charset=utf-8,'+encodeURIComponent(text); }
+  var el = document.createElement('a');
+  el.href = url; el.download = 'irori-members.json';
+  document.body.appendChild(el); el.click();
+  setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} el.remove(); }, 500);
+  toast('irori-members.json を書き出しました');
+}
+function importRoster(file){
+  var fr = new FileReader();
+  fr.onload = function(){
+    try{
+      var d = JSON.parse(fr.result), list = d && d.players;
+      if(!list || !list.length) throw 0;
+      if(state.players.length && !window.confirm('いまの名簿を置き換えます。よろしいですか？')) return;
+      var cnt = 0;
+      state.players = list.slice(0, MAXP).map(function(p){
+        var on = p['in']!==false && cnt < MAXACTIVE;
+        if(on) cnt++;
+        return { id:uid(), name:String(p.name||'?').slice(0,8), sex:p.sex==='f'?'f':'m', in:on }; });
+      state.ghosts = []; state.rounds = null; state.roundActive = null;
+      state.builtWith = null; state.current = 0; state.lastN = -1;
+      render();
+      toast(state.players.length+'人を読み込みました');
+    }catch(e){ toast('このファイルは読み込めませんでした'); }
+  };
+  fr.readAsText(file);
+}
+$('exportBtn').addEventListener('click', exportRoster);
+$('importBtn').addEventListener('click', function(){ $('importFile').click(); });
+$('importFile').addEventListener('change', function(e){
+  if(e.target.files && e.target.files[0]) importRoster(e.target.files[0]);
+  e.target.value = '';
+});
+$('delMode').addEventListener('click', function(){ state.delMode = !state.delMode; render(); });
+$('delDone').addEventListener('click', function(){ state.delMode = false; render(); });
+$('toggleAll').addEventListener('click', function(){
+  var total = state.players.length, on = activeIds().length;
+  var allOn = (on>0 && on===Math.min(total, MAXACTIVE));
+  if(allOn){
+    state.players.forEach(function(p){ p['in'] = false; });
+    render(); toast('全員の選択を外しました');
+  } else {
+    var c = 0;
+    state.players.forEach(function(p){ p['in'] = (c < MAXACTIVE); if(c < MAXACTIVE) c++; });
+    render();
+    toast(total > MAXACTIVE ? '上から'+MAXACTIVE+'人を参加にしました' : '全員を参加にしました');
+  }
+});
+
+/* ---------- 設定・進行 ---------- */
+$('courts').addEventListener('change', function(e){
+  var v = parseInt(e.target.value,10);
+  if(isNaN(v) || v < 1) v = maxCourtsFor(activeIds().length);
+  state.maxCourts = v; state.courtsTouched = true; render();
+});
+$('nrounds').addEventListener('change', function(e){
+  var v = parseInt(e.target.value,10);
+  if(isNaN(v)||v<1) v=1; if(v>40) v=40;
+  state.nrounds = v; e.target.value = v; render();
+});
+$('build').addEventListener('click', function(){
+  state.current = 0;
+  if(buildSchedule(0)){ render(); toast(state.nrounds+'ラウンド分を作りました'); }
+});
+$('rebuildAll').addEventListener('click', function(){
+  state.current = 0;
+  if(buildSchedule(0)){ render(); toast('最初からつくり直しました'); }
+});
+$('rebuildRest').addEventListener('click', function(){
+  if(buildSchedule(state.current)){ render(); toast('ラウンド'+(state.current+1)+'以降を組み直しました'); }
+});
+function pickRound(el){
+  if(!el) return;
+  state.current = parseInt(el.dataset.go,10);
+  var top = $('rlist').scrollTop;
+  render();
+  $('rlist').scrollTop = top;
+}
+$('rlist').addEventListener('click', function(e){
+  var b = e.target.closest('[data-go]'); pickRound(b);
+});
+$('rlist').addEventListener('keydown', function(e){
+  if(e.key!=='Enter' && e.key!==' ') return;
+  var b = e.target.closest('[data-go]'); if(!b) return;
+  e.preventDefault(); pickRound(b);
+});
+$('tabs').addEventListener('click', function(e){
+  if(!e.target.dataset.t) return; state.tab = e.target.dataset.t; renderStats();
+});
+
+/* 背景のシャトルをランダムに散らす */
+(function(){
+  var g = document.getElementById('shuttles'), tpl = document.getElementById('shuttle');
+  if(!g || !tpl) return;
+  var cols = 5, rows = 4;
+  for(var cx=0; cx<cols; cx++) for(var cy=0; cy<rows; cy++){
+    var x = (cx + 0.12 + Math.random()*0.76) * (1200/cols);
+    var y = (cy + 0.12 + Math.random()*0.76) * (900/rows);
+    var s = tpl.cloneNode(true);
+    s.removeAttribute('id');
+    s.setAttribute('transform','translate('+x.toFixed(1)+','+y.toFixed(1)+') rotate('+
+      (Math.random()*360).toFixed(1)+') scale('+(0.72+Math.random()*0.9).toFixed(2)+')');
+    s.setAttribute('opacity', (0.45+Math.random()*0.55).toFixed(2));
+    g.appendChild(s);
+  }
+})();
+
+load(function(){ render(); });
+})();
+</script>
+</body>
+</html>
