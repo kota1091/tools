@@ -943,7 +943,7 @@ function R(){ return state.rounds ? state.rounds.length : state.nrounds; }
 var storeMode = 'none';
 /* 保存するのは名簿とラウンド数だけ。対戦表は保存しない */
 function payload(){
-  return { v:4, nrounds:state.nrounds,
+  return { v:4,
     players: state.players.map(function(p){ return {id:p.id, name:p.name, sex:p.sex, in:p['in']}; }) };
 }
 function save(){
@@ -959,7 +959,6 @@ function restore(d){
   state.players = d.players.filter(function(p){ return p && p.name; }).slice(0, MAXP)
     .map(function(p){ var on = p['in']!==false && cnt < MAXACTIVE; if(on) cnt++;
       return { id:p.id||uid(), name:String(p.name).slice(0,8), sex:p.sex==='f'?'f':'m', in:on }; });
-  if(d.nrounds) state.nrounds = Math.max(1, Math.min(40, d.nrounds|0));
 }
 function load(cb){
   try{
