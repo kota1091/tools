@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>いろり ダブルス対戦表</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 :root{
   --ink:#12231f; --ink-60:#5b6f69; --ink-30:#9aaaa4;
@@ -25,7 +22,8 @@
 html,body{margin:0;padding:0}
 body{
   background:var(--paper); color:var(--ink);
-  font-family:"Zen Kaku Gothic New",-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","ヒラギノ角ゴシック",
+    "Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic Medium","Yu Gothic","Meiryo",sans-serif;
   font-size:15px; line-height:1.65; font-variant-numeric:tabular-nums;
   -webkit-text-size-adjust:100%;
 }
@@ -1047,6 +1045,11 @@ function renderMembers(){
   $('members').className = 'members' + (state.delMode ? ' delmode' : '');
   $('delbar').hidden = !state.delMode;
   $('emptyRoster').hidden = state.players.length > 0;
+  updateMemberInfo();
+}
+
+/* 人数表示とボタンの状態だけを更新する (一覧のDOMは触らない) */
+function updateMemberInfo(){
   var n = activeIds().length, total = state.players.length;
   var men = state.players.filter(function(p){ return p['in'] && p.sex!=='f'; }).length;
   var cnt = '参加 '+n+'人（<span class="male">男 '+men+'</span> ／ '+
@@ -1300,22 +1303,27 @@ $('newName').addEventListener('keydown', function(e){ if(e.key==='Enter') addPla
 document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !$('modal').hidden) closeModal(); });
 
 /* ---------- メンバー操作 ---------- */
-function toggleMember(id){
+function toggleMember(id, el){
   var p = findP(id); if(!p) return;
   if(!p['in'] && activeIds().length >= MAXACTIVE){ toast('参加登録は'+MAXACTIVE+'人までです'); return; }
   p['in'] = !p['in'];
-  var top = $('members').scrollTop;
-  render();
-  $('members').scrollTop = top;
+  if(el){                                   // 該当のラベルだけ塗り替える
+    el.className = 'member' + (p['in'] ? '' : ' off');
+    el.setAttribute('aria-checked', p['in'] ? 'true' : 'false');
+  }
+  updateMemberInfo();
+  renderSetup();
+  renderStale();
+  save();
 }
 bindTap($('members'), '[data-chk]', function(el){
   if(state.delMode) return;
-  toggleMember(el.dataset.chk);
+  toggleMember(el.dataset.chk, el);
 });
 $('members').addEventListener('keydown', function(e){
   if(e.key!=='Enter' && e.key!==' ') return;
   var el = e.target.closest('[data-chk]'); if(!el) return;
-  e.preventDefault(); toggleMember(el.dataset.chk);
+  e.preventDefault(); toggleMember(el.dataset.chk, el);
 });
 $('members').addEventListener('click', function(e){
   var dl = e.target.dataset.del; if(!dl) return;
