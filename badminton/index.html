@@ -10,7 +10,7 @@
 <style>
 :root{
   --ink:#12231f; --ink-60:#5b6f69; --ink-30:#9aaaa4;
-  --paper:#e9efe7; --panel:rgba(255,255,255,.95);
+  --paper:#ccdaca; --panel:rgba(255,255,255,.96);
   --court:#12664b; --court-dark:#0d4c38;
   --bench:#41607a; --bench-soft:#e3eaef;
   --now:#f2c230; --warn:#a8442a; --rule:#d3dbd2;
@@ -41,10 +41,9 @@ button{font-family:inherit;font-size:14px;cursor:pointer}
 input,select{font-family:inherit;font-size:15px;color:var(--ink)}
 .male{color:var(--male)} .female{color:var(--female)}
 
-header{display:flex;justify-content:space-between;align-items:flex-end;
-  padding-bottom:14px;border-bottom:2px solid var(--court);margin-bottom:20px}
+header{padding-bottom:14px;border-bottom:2px solid var(--court);margin-bottom:20px}
 header .sub{font-size:12.5px;color:var(--ink-60);margin-top:2px}
-header svg{width:32px;height:32px;flex:none;margin-left:16px}
+
 
 .btn{background:var(--court);color:#fff;border:none;border-radius:var(--r);
   padding:11px 18px;font-weight:700;min-height:44px}
@@ -208,7 +207,6 @@ td.spark{width:30%;text-align:left}
   .wrap{padding:14px 11px 72px}
   h1{font-size:19px}
   header{margin-bottom:16px}
-  header svg{margin-left:10px}
   section{padding:14px 12px;border-radius:12px}
   .members{grid-template-columns:1fr;grid-gap:7px;gap:7px;max-height:44vh}
   .member .nm{font-size:22px}
@@ -246,11 +244,11 @@ td.spark{width:30%;text-align:left}
 <svg viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0.3" y2="1">
-      <stop offset="0" stop-color="#f2f6ef"/>
-      <stop offset="0.55" stop-color="#e6eee6"/>
-      <stop offset="1" stop-color="#dae7dc"/>
+      <stop offset="0" stop-color="#dbe6d8"/>
+      <stop offset="0.55" stop-color="#c9d9c8"/>
+      <stop offset="1" stop-color="#b7cbb8"/>
     </linearGradient>
-    <g id="shuttle" stroke="#12664b" stroke-opacity=".42" stroke-width="1.5" fill="none"
+    <g id="shuttle" stroke="#0d4c38" stroke-opacity=".34" stroke-width="1.5" fill="none"
        stroke-linejoin="round" stroke-linecap="round">
       <path d="M-7 -5 L-16.5 -40 a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0
                a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0 L7 -5 Z" fill="#ffffff" fill-opacity=".55"/>
@@ -263,7 +261,7 @@ td.spark{width:30%;text-align:left}
   </defs>
   <rect width="1200" height="900" fill="url(#sky)"/>
   <g transform="translate(600,470) rotate(-15) translate(-402,-183)"
-     fill="none" stroke="#12664b" stroke-opacity=".15" stroke-width="2.5">
+     fill="none" stroke="#0d4c38" stroke-opacity=".13" stroke-width="2.5">
     <rect x="0" y="0" width="804" height="366" rx="2"/>
     <path d="M0 27.5 H804 M0 338.5 H804"/>
     <path d="M283 0 V366 M521 0 V366"/>
@@ -279,13 +277,6 @@ td.spark{width:30%;text-align:left}
 
 <header>
   <h1>いろり ダブルス対戦表</h1>
-  <svg class="noprint" viewBox="-20 -46 40 60" aria-hidden="true" stroke="#12664b" fill="none"
-       stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M-7 -5 L-16.5 -40 a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0
-             a3.4 3.4 0 0 1 6.6 0 a3.4 3.4 0 0 1 6.6 0 L7 -5 Z"/>
-    <path d="M-13 -28 Q0 -24.5 13 -28" stroke-width="1.3" stroke-opacity=".5"/>
-    <circle cx="0" cy="1.5" r="8" fill="#12664b" stroke="none"/>
-  </svg>
 </header>
 
 <section class="noprint">
@@ -317,7 +308,7 @@ td.spark{width:30%;text-align:left}
     </div>
     <div class="field">
       <label for="nrounds">ラウンド数</label>
-      <input type="number" id="nrounds" min="1" max="40" step="1" value="12">
+      <input type="number" id="nrounds" min="1" max="40" step="1" value="10">
     </div>
     <button class="btn" id="build">対戦表をつくる</button>
   </div>
@@ -914,7 +905,7 @@ td.spark{width:30%;text-align:left}
 (function(){
 'use strict';
 var COURT_LETTERS = 'ABCDEFGH';
-var MAXP = 32, MAXACTIVE = 16, MINP = 4, DEF_ROUNDS = 12, KEY = 'irori-badminton:roster';
+var MAXP = 32, MAXACTIVE = 20, MINP = 4, DEF_ROUNDS = 10, KEY = 'irori-badminton:roster';
 var $ = function(id){ return document.getElementById(id); };
 var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){
   return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); };
@@ -1069,7 +1060,7 @@ function renderMembers(){
   var hint = $('memberHint');
   if(state.delMode){ hint.className='hint bad'; hint.textContent='削除したメンバーは元に戻せません。'; }
   else if(n < MINP){ hint.className='hint bad'; hint.textContent='選ばれているのは'+n+'人です。対戦表を作るには4人以上必要です。'; }
-  else if(n >= MAXACTIVE){ hint.className='hint'; hint.textContent='参加登録は16人までです。'; }
+  else if(n >= MAXACTIVE){ hint.className='hint'; hint.textContent='参加登録は'+MAXACTIVE+'人までです。'; }
   else if(total >= MAXP){ hint.className='hint'; hint.textContent='名簿の登録は32人までです。'; }
   else { hint.className='hint'; hint.textContent='緑にハイライトされた人だけが試合に入ります。タップで切り替えできます。'; }
 }
@@ -1292,7 +1283,7 @@ function addPlayer(){
   state.players.push({ id:uid(), name:v.slice(0,8), sex:state.newSex, in:joinable });
   $('newName').value = ''; $('newName').focus();
   render();
-  toast(v+' を登録しました' + (joinable ? '' : '（参加は16人までのため未選択）'));
+  toast(v+' を登録しました' + (joinable ? '' : '（参加は'+MAXACTIVE+'人までのため未選択）'));
   if(state.players.length >= MAXP) closeModal();
 }
 $('seg').addEventListener('click', function(e){
