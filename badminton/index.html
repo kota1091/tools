@@ -179,9 +179,11 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}
 th,td{text-align:right;padding:7px 6px;border-bottom:1px solid var(--rule);white-space:nowrap}
 th:first-child,td:first-child{text-align:left;font-weight:700}
 th{font-size:12px;color:var(--ink-60);font-weight:500}
-td.spark{width:30%;text-align:left}
-.bar{display:inline-block;height:9px;border-radius:3px;background:var(--play);vertical-align:middle}
-.bar.rest{background:var(--rest)}
+td.spark,th.spark{text-align:left}
+td.spark{width:34%}
+.stack{display:flex;width:100%;height:13px;border-radius:3px;overflow:hidden;background:#e5eae4}
+.stack i{display:block;height:100%}
+.stack i.g{background:var(--play)} .stack i.r{background:var(--rest)}
 .dots{display:flex}
 .dots i{width:11px;height:11px;border-radius:3px;background:#dfe4dd;display:block;margin-right:3px}
 .dots i.r{background:var(--rest)} .dots i.g{background:var(--play)}
@@ -1225,17 +1227,22 @@ function renderStats(){
             : '重複はありません。')+
       ' 必要なペア枠は'+a.totalPairSlots+'、組み合わせは全'+a.coPresentPairs+'通りです。</p>';
   } else if(state.tab==='player'){
-    var gmax = a.gameMax||1, rmax = a.restMax||1;
-    body = '<table><tr><th>プレイヤー</th><th>試合</th><th class="spark">試合数</th><th>休み</th><th class="spark">休み</th><th>在籍</th><th>期待差</th></tr>'+
+    var tmax = 1;
+    ids.forEach(function(id){ tmax = Math.max(tmax, a.games[id] + a.rests[id]); });
+    body = '<p class="pairwarn" style="margin:0 0 10px">'+
+      '<span class="key"><i class="g"></i>試合</span>'+
+      '<span class="key"><i class="r"></i>休み</span></p>'+
+      '<table><tr><th>プレイヤー</th><th class="spark">試合と休み</th><th>試合</th><th>休み</th><th>在籍</th><th>期待差</th></tr>'+
       ids.map(function(id){
-        var dv = Math.round((a.games[id]-a.expGames[id])*10)/10;
-        return '<tr><td>'+nm(id)+'</td><td>'+a.games[id]+'</td>'+
-          '<td class="spark"><i class="bar" style="width:'+(a.games[id]/gmax*100)+'%"></i></td>'+
-          '<td>'+a.rests[id]+'</td>'+
-          '<td class="spark"><i class="bar rest" style="width:'+(rmax?a.rests[id]/rmax*100:0)+'%"></i></td>'+
-          '<td>'+a.presentRounds[id]+'R</td>'+
+        var g = a.games[id], r = a.rests[id];
+        var dv = Math.round((g-a.expGames[id])*10)/10;
+        return '<tr><td>'+nm(id)+'</td>'+
+          '<td class="spark"><span class="stack">'+
+            '<i class="g" style="width:'+(g/tmax*100)+'%"></i>'+
+            '<i class="r" style="width:'+(r/tmax*100)+'%"></i></span></td>'+
+          '<td>'+g+'</td><td>'+r+'</td><td>'+a.presentRounds[id]+'R</td>'+
           '<td'+(Math.abs(dv)>1?' style="color:#a8442a"':'')+'>'+(dv>0?'+':'')+dv+'</td></tr>'; }).join('')+
-      '</table><p class="pairwarn"><span class="key"><i class="g"></i>試合数</span><span class="key"><i class="r"></i>休み</span>　「期待差」は在籍ラウンドの出場率から計算した理論値とのずれです。1未満なら偏りはありません。</p>';
+      '</table><p class="pairwarn">「期待差」は在籍ラウンドの出場率から計算した理論値とのずれです。1未満なら偏りはありません。</p>';
   } else if(state.tab==='gap'){
     body = '<p class="pairwarn" style="margin:0 0 10px">'+
       '<span class="key"><i class="g"></i>試合</span>'+
