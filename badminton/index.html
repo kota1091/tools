@@ -1415,6 +1415,11 @@ $('nrounds').addEventListener('change', function(e){
   state.nrounds = v; e.target.value = v; render();
 });
 $('build').addEventListener('click', function(){
+  if(state.rounds){
+    var msg = 'いまの対戦表を破棄して新しく作り直します。';
+    if(state.current > 0) msg += '\nラウンド'+(state.current+1)+'まで進んだ記録も消えます。';
+    if(!window.confirm(msg + '\nよろしいですか？')) return;
+  }
   state.current = 0;
   if(buildSchedule(0)){ render(); toast(state.nrounds+'ラウンド分を作りました'); }
 });
