@@ -319,7 +319,7 @@ td.spark{width:34%}
     </div>
     <div class="field">
       <label for="nrounds">ラウンド数</label>
-      <input type="number" id="nrounds" min="1" max="40" step="1" value="10">
+      <input type="number" id="nrounds" min="1" max="40" step="1" value="12">
     </div>
     <button class="btn" id="build">対戦表をつくる</button>
   </div>
@@ -397,16 +397,16 @@ td.spark{width:34%}
      出来上がった解を CANON で比べて一番良いものを採用する。            */
   var CANON = {
     PAIR: 1200,   // 同じペアの重複 (条件4) : 最重要
-    OPP: 26,      // 同じ相手との対戦回数の偏り (条件7)
+    OPP: 400,     // 同じ相手との対戦回数の偏り (条件7)
     REST: 2600,   // 休み回数の偏り (条件5)
     CONSEC: 1400, // 理論下限を超える連続休み (条件6)
     GAP: 45       // 休みの間隔の詰まり (D)
   };
   var PROFILES = [
     CANON,
-    { PAIR: 1200, OPP: 26, REST: 6000, CONSEC: 7000, GAP: 260 },  // 休み優先
-    { PAIR: 3200, OPP: 60, REST: 2600, CONSEC: 500, GAP: 20 },    // ペア優先
-    { PAIR: 1200, OPP: 8, REST: 3400, CONSEC: 2600, GAP: 120 }
+    { PAIR: 1200, OPP: 60, REST: 6000, CONSEC: 7000, GAP: 260 },  // 休み優先
+    { PAIR: 3200, OPP: 250, REST: 2600, CONSEC: 500, GAP: 20 },    // ペア優先
+    { PAIR: 1200, OPP: 900, REST: 3400, CONSEC: 2600, GAP: 120 }
   ];
   var W = CANON;
 
@@ -462,6 +462,8 @@ td.spark{width:34%}
     this.restRatio = ratio;
 
     this.restCount = new Int32Array(P);
+    this.pairCap = Infinity;   // ペア重複をこれ以上増やす手は却下する
+    this.adjCap = Infinity;    // 避けられるはずの連続休みも増やさない
   }
 
   /* --- 1ラウンド分の集計を加算(sign=+1)/減算(sign=-1) --- */
@@ -524,6 +526,35 @@ td.spark{width:34%}
       if (adj > minAdj) cost += Wt.CONSEC * (adj - minAdj);
     }
     return cost;
+  };
+
+  /* 避けられるはずの連続休みが何箇所あるか */
+  Solver.prototype.adjExcess = function () {
+    var P = this.P, R = this.R, total = 0;
+    var buf = this._buf2 || (this._buf2 = new Int32Array(R));
+    for (var p = 0; p < P; p++) {
+      var L = this.presentCount[p];
+      if (L === 0) continue;
+      var k = this.restCount[p];
+      if (k < 2) continue;
+      var m = 0, t = 0;
+      for (var r = 0; r < R; r++) {
+        if (!this.presentFlag[r * P + p]) continue;
+        if (this.restFlag[r * P + p]) buf[m++] = t;
+        t++;
+      }
+      var adj = 0;
+      for (var i = 1; i < m; i++) if (buf[i] - buf[i - 1] === 1) adj++;
+      var mn = 2 * k - L - 1; if (mn < 0) mn = 0;
+      if (adj > mn) total += adj - mn;
+    }
+    return total;
+  };
+
+  Solver.prototype.okCaps = function () {
+    if (this.costPair > this.pairCap) return false;
+    if (this.adjCap < Infinity && this.adjExcess() > this.adjCap) return false;
+    return true;
   };
 
   Solver.prototype.totalCost = function () {
@@ -589,6 +620,41 @@ td.spark{width:34%}
     return [r1, i1, j1, r2, i2, j2];
   };
 
+  /* コートiのあるチームと、コートjのあるチームを丸ごと入れ替える。
+     ペアの組み合わせと休みは変わらず、対戦相手だけが変わる。 */
+  Solver.prototype._teamSwap = function (r, ci, si, cj, sj) {
+    this._apply(r, -1);
+    var perm = this.perm[r];
+    var a = ci * 4 + si * 2, b = cj * 4 + sj * 2;
+    var t0 = perm[a], t1 = perm[a + 1];
+    perm[a] = perm[b]; perm[a + 1] = perm[b + 1];
+    perm[b] = t0; perm[b + 1] = t1;
+    this._apply(r, 1);
+  };
+
+  /* 対戦相手の偏りだけを均す仕上げ。条件4〜6には一切触れない。 */
+  Solver.prototype.balanceOpponents = function (iters) {
+    var rng = this.rng, rounds = [];
+    for (var f = 0; f < this.free.length; f++)
+      if (this.courts[this.free[f]] >= 2) rounds.push(this.free[f]);
+    if (!rounds.length) return;
+    var cur = this.costOpp, best = cur, bestSnap = this.snapshot();
+    for (var it = 0; it < iters; it++) {
+      var T = 3 * Math.pow(0.02 / 3, it / iters);
+      var r = rounds[(rng() * rounds.length) | 0], c = this.courts[r];
+      var ci = (rng() * c) | 0, cj = (rng() * c) | 0;
+      if (ci === cj) continue;
+      var si = (rng() * 2) | 0, sj = (rng() * 2) | 0;
+      this._teamSwap(r, ci, si, cj, sj);
+      var d = this.costOpp - cur;
+      if (d <= 0 || rng() < Math.exp(-d / T)) {
+        cur = this.costOpp;
+        if (cur < best) { best = cur; bestSnap = this.snapshot(); }
+      } else { this._teamSwap(r, ci, si, cj, sj); }
+    }
+    if (cur > best) this.loadFrom(bestSnap);
+  };
+
   Solver.prototype.anneal = function (iters, t0, t1) {
     if (this.free.length === 0) return this.totalCost();
     var cur = this.totalCost(), rng = this.rng;
@@ -602,7 +668,25 @@ td.spark{width:34%}
 
     for (var it = 0; it < iters; it++) {
       var T = t0 * Math.pow(t1 / t0, it / iters);
+      var multi = [];
       var useTrade = restRounds.length >= 2 && rng() < 0.3;
+      var useTeam = !useTrade && rng() < 0.25;
+
+      if (useTeam) {
+        var tr = freeUsable[(rng() * freeUsable.length) | 0];
+        var tc = this.courts[tr];
+        if (tc >= 2) {
+          var a1 = (rng() * tc) | 0, a2 = (rng() * tc) | 0;
+          if (a1 !== a2) {
+            var s1 = (rng() * 2) | 0, s2 = (rng() * 2) | 0;
+            this._teamSwap(tr, a1, s1, a2, s2);
+            var nt = this.totalCost(), dt = nt - cur;
+            if ((dt <= 0 || rng() < Math.exp(-dt / T)) && this.okCaps()) { cur = nt; }
+            else { this._teamSwap(tr, a1, s1, a2, s2); }
+          }
+        }
+        continue;
+      }
 
       if (useTrade) {
         var r1 = restRounds[(rng() * restRounds.length) | 0];
@@ -618,7 +702,7 @@ td.spark{width:34%}
         if (iq1 < 0 || iq1 >= np1) continue;   // qがr1で出場していること
         var mv = this._tradeRest(r1, r2, p, q);
         var nx = this.totalCost(), dd = nx - cur;
-        if (dd <= 0 || rng() < Math.exp(-dd / T)) { cur = nx; }
+        if ((dd <= 0 || rng() < Math.exp(-dd / T)) && this.okCaps()) { cur = nx; }
         else { this._swap(mv[3], mv[4], mv[5]); this._swap(mv[0], mv[1], mv[2]); }
         continue;
       }
@@ -632,7 +716,7 @@ td.spark{width:34%}
       this._swap(rr, i, j);
       var next = this.totalCost();
       var d = next - cur;
-      if (d <= 0 || rng() < Math.exp(-d / T)) { cur = next; }
+      if ((d <= 0 || rng() < Math.exp(-d / T)) && this.okCaps()) { cur = next; }
       else { this._swap(rr, i, j); }
     }
     return cur;
@@ -698,7 +782,7 @@ td.spark{width:34%}
     var restarts = Math.max(4, Math.round(8 * effort));
     var iters = Math.round((9000 + maxN * 2200) * effort * Math.max(0.5, R / 12));
 
-    var best = null, bestCost = Infinity;
+    var best = null, bestCost = Infinity, bestPair = Infinity, bestAdj = Infinity;
     for (var t = 0; t < restarts; t++) {
       var rng = mulberry32((cfg.seed || 12345) + t * 7919);
       var s = new Solver({
@@ -707,8 +791,11 @@ td.spark{width:34%}
       }, rng, PROFILES[t % PROFILES.length]);
       s.init();
       s.anneal(iters, 6000, 0.4);
-      var c1 = s.canonCost();
-      if (best === null || c1 < bestCost) { bestCost = c1; best = s.snapshot(); }
+      var c1 = s.canonCost(), cp = s.costPair, ca = s.adjExcess();
+      if (best === null || cp < bestPair ||
+          (cp === bestPair && (ca < bestAdj || (ca === bestAdj && c1 < bestCost)))) {
+        bestPair = cp; bestAdj = ca; bestCost = c1; best = s.snapshot();
+      }
     }
 
     // 仕上げ: 正準コストで低温焼きなまし
@@ -717,8 +804,35 @@ td.spark{width:34%}
       courtsByRound: courtsByRound, locked: lockedPerm
     }, mulberry32((cfg.seed || 12345) + 104729), CANON);
     polish.loadFrom(best);
+    polish.pairCap = bestPair; polish.adjCap = bestAdj;
     polish.anneal(Math.round(iters * 1.5), 700, 0.05);
-    if (polish.canonCost() < bestCost) { bestCost = polish.canonCost(); best = polish.snapshot(); }
+    if (polish.costPair <= bestPair && polish.adjExcess() <= bestAdj && polish.canonCost() <= bestCost) {
+      bestCost = polish.canonCost(); best = polish.snapshot();
+    }
+
+    // 仕上げ2: 連続休みが残っていれば、ペアを崩さない範囲で直す
+    if (bestAdj > 0) {
+      var fixD = new Solver({
+        rounds: R, numPlayers: cfg.numPlayers, activeByRound: cfg.activeByRound,
+        courtsByRound: courtsByRound, locked: lockedPerm
+      }, mulberry32((cfg.seed || 12345) + 31337), PROFILES[1]);
+      fixD.loadFrom(best);
+      fixD.pairCap = bestPair;
+      fixD.anneal(Math.round(iters * 1.2), 900, 0.05);
+      var fa = fixD.adjExcess();
+      if (fixD.costPair <= bestPair && fa < bestAdj) {
+        bestAdj = fa; bestCost = fixD.canonCost(); best = fixD.snapshot();
+      }
+    }
+
+    // 仕上げ3: ペア・試合数・休みを固定したまま、対戦相手の偏りだけを均す
+    var fin = new Solver({
+      rounds: R, numPlayers: cfg.numPlayers, activeByRound: cfg.activeByRound,
+      courtsByRound: courtsByRound, locked: lockedPerm
+    }, mulberry32((cfg.seed || 12345) + 7919), CANON);
+    fin.loadFrom(best);
+    fin.balanceOpponents(Math.round(iters * 3));
+    bestCost = fin.canonCost(); best = fin.snapshot();
 
     var rounds = [];
     for (var r4 = 0; r4 < R; r4++)
