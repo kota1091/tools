@@ -39,6 +39,10 @@ h1{font-size:22px;font-weight:900;margin:0}
 h2{font-size:21px;font-weight:700;margin:0 0 14px;display:flex;align-items:baseline;flex-wrap:wrap}
 h2>*+*{margin-left:18px}
 h2 .note{font-size:14px;font-weight:400;color:var(--ink-60);margin-left:1.5em}
+h2.has-clock{justify-content:space-between;align-items:center;margin-bottom:6px}
+.subnote{font-size:14px;color:var(--ink-60);margin:0 0 12px}
+h2 .clock{font-size:26px;font-weight:700;color:var(--court);
+  font-variant-numeric:tabular-nums;letter-spacing:.02em;white-space:nowrap;line-height:1.1}
 p{margin:0 0 10px}
 button{font-family:inherit;font-size:14px;cursor:pointer}
 input,select{font-family:inherit;font-size:15px;color:var(--ink)}
@@ -230,6 +234,8 @@ td.spark{width:34%}
   .setup .btn{flex:1 1 100%}
   .setup .btn.ghost{flex:0 0 auto}
   .tools .btn{flex:1 1 auto}
+  h2 .clock{font-size:22px}
+  .subnote{font-size:13px}
   .rlist{max-height:58vh}
   .rd{--fname:32px}
   .rd{padding:9px 8px;padding-left:44px}
@@ -338,7 +344,9 @@ td.spark{width:34%}
 </div>
 
 <section id="roundsSec" hidden>
-  <h2>ラウンド <span class="note" id="roundsNote"></span></h2>
+  <h2 class="has-clock">ラウンド
+    <span class="clock" id="clock" aria-label="現在時刻"></span></h2>
+  <p class="subnote" id="roundsNote"></p>
   <div class="rlist" id="rlist"></div>
 </section>
 
@@ -1608,6 +1616,21 @@ $('tabs').addEventListener('click', function(e){
     s.setAttribute('opacity', (0.45+Math.random()*0.55).toFixed(2));
     g.appendChild(s);
   }
+})();
+
+/* 全画面表示だと時刻が見えないので、ラウンド欄に時計を出す */
+(function(){
+  var el = document.getElementById('clock');
+  if(!el) return;
+  var last = '';
+  function two(n){ return (n < 10 ? '0' : '') + n; }
+  function tick(){
+    var d = new Date(), s = d.getHours() + ':' + two(d.getMinutes());
+    if(s !== last){ last = s; el.textContent = s; }
+  }
+  tick();
+  setInterval(tick, 1000);
+  document.addEventListener('visibilitychange', tick);   // 復帰時にすぐ合わせる
 })();
 
 load(function(){ render(); });
