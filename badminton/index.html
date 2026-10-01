@@ -49,6 +49,14 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink)}
 .male{color:var(--male)} .female{color:var(--female)}
 
 header{padding-bottom:14px;border-bottom:2px solid var(--court);margin-bottom:20px}
+#appTitle{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:default;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  -webkit-transition:opacity .15s;transition:opacity .15s}
+#appTitle.pressing{opacity:.45}
+.update-bar{background:var(--now);color:var(--ink);font-size:17px;font-weight:700;text-align:center;
+  border-radius:10px;padding:14px 16px;margin-bottom:14px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.appfoot{font-size:12.5px;color:var(--ink-60);text-align:center;margin:18px 0 0}
 header .sub{font-size:12.5px;color:var(--ink-60);margin-top:2px}
 
 
@@ -297,8 +305,12 @@ td.spark{width:34%}
 
 <div class="wrap">
 
+<div class="update-bar" id="updateBar" hidden role="button" tabindex="0">
+  新しい版があります。ここをタップすると更新します。
+</div>
+
 <header>
-  <h1>いろり ダブルス対戦表</h1>
+  <h1 id="appTitle">いろり ダブルス対戦表</h1>
 </header>
 
 <section class="noprint">
@@ -314,10 +326,12 @@ td.spark{width:34%}
     <button class="btn danger small" id="delMode">削除</button>
     <button class="btn danger small" id="clearAll">全選択を解除</button>
     <span class="spacer"></span>
+    <button class="btn ghost small" id="serverLoadBtn" hidden>サーバーから読み込む</button>
     <button class="btn ghost small" id="exportBtn">名簿を書き出す</button>
     <button class="btn ghost small" id="importBtn">読み込む</button>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
   </div>
+  <p class="hint bad" id="syncNote" style="margin-top:10px" hidden></p>
   <p class="hint" id="memberHint" style="margin-top:10px"></p>
 </section>
 
@@ -361,6 +375,10 @@ td.spark{width:34%}
   </div>
   <div class="scroll" id="statBody"></div>
 </section>
+
+<footer class="appfoot">
+  <span id="appVer"></span>　タイトルを長押しすると最新の版を読み込み直します
+</footer>
 
 </div>
 
@@ -1070,7 +1088,38 @@ function R(){ return state.rounds ? state.rounds.length : state.nrounds; }
 
 /* ---------- 自動保存 ---------- */
 var storeMode = 'none';
-/* 保存するのは名簿とラウンド数だけ。対戦表は保存しない */
+/* サーバーに保存するのは名簿だけ (名前・性別・参加の選択)。
+   進行中の対戦表はこの端末の中にだけ控えておき、読み込み直したときに復元する (12時間まで) */
+var SESSION_KEY = KEY + ':session', SESSION_HOURS = 12;
+function saveSession(){
+  if(storeMode !== 'local') return;
+  try{
+    if(!state.rounds){ window.localStorage.removeItem(SESSION_KEY); return; }
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify({
+      savedAt: Date.now(), rounds: state.rounds, roundActive: state.roundActive,
+      current: state.current, builtWith: state.builtWith, lockedUpto: state.lockedUpto,
+      ghosts: state.ghosts, maxCourts: state.maxCourts, nrounds: state.nrounds,
+      courtsTouched: state.courtsTouched }));
+  }catch(e){}
+}
+function restoreSession(){
+  if(storeMode !== 'local') return false;
+  try{
+    var s = JSON.parse(window.localStorage.getItem(SESSION_KEY) || 'null');
+    if(!s || !s.rounds || !s.rounds.length) return false;
+    if(Date.now() - (s.savedAt||0) > SESSION_HOURS*3600*1000){
+      window.localStorage.removeItem(SESSION_KEY); return false;
+    }
+    state.rounds = s.rounds; state.roundActive = s.roundActive;
+    state.current = Math.max(0, Math.min(s.current|0, s.rounds.length-1));
+    state.builtWith = s.builtWith; state.lockedUpto = s.lockedUpto|0;
+    state.ghosts = s.ghosts || []; state.maxCourts = s.maxCourts || 1;
+    state.nrounds = s.nrounds || s.rounds.length;
+    state.courtsTouched = !!s.courtsTouched;
+    state.lastN = activeIds().length;          // コート数を人数で上書きしない
+    return true;
+  }catch(e){ return false; }
+}
 function payload(){
   return { v:4,
     players: state.players.map(function(p){ return {id:p.id, name:p.name, sex:p.sex, in:p['in']}; }) };
@@ -1078,10 +1127,132 @@ function payload(){
 function save(){
   var json;
   try{ json = JSON.stringify(payload()); }catch(e){ return; }
+  serverQueue(json);
+  saveSession();
   if(storeMode==='cloud'){ try{ window.storage.set(KEY, json); }catch(e){} return; }
   if(storeMode==='local'){ try{ window.localStorage.setItem(KEY, json); }
     catch(e){ storeMode='none'; } }
 }
+
+/* ---------- サーバー (Pythonista の server.py) への保存 ----------
+   名簿の本体はサーバーの irori-roster.json。端末内にも控えを残す。
+   mode: 'unknown' 確認中・接続できず / 'on' サーバーあり / 'off' サーバーなし(他の配信元) */
+var server = { mode:'unknown', reach:false, pending:false, lastSent:'', timer:null, busy:false, base:'' };
+var SERVER_API = '/api/roster';
+
+function serverRequest(method, body, cb){
+  if(!/^https?:$/.test(location.protocol)){ cb('off'); return; }
+  var xhr;
+  try{
+    xhr = new XMLHttpRequest();
+    xhr.open(method, SERVER_API + (method==='GET' ? '?t='+Date.now() : ''), true);
+    xhr.timeout = 5000;
+    if(body) xhr.setRequestHeader('Content-Type', 'application/json');
+  }catch(e){ cb('offline'); return; }
+  xhr.onload = function(){
+    var d = null;
+    try{ d = JSON.parse(xhr.responseText); }catch(e){}
+    if(xhr.status === 200 && d) cb('ok', d);
+    else if(xhr.status === 404 && d && d.error === 'no roster') cb('empty');
+    else if(d && typeof d.ok === 'boolean') cb('error', d);    // サーバーはあるが保存できなかった
+    else cb('off');                                             // 別の配信元 (GitHub など)
+  };
+  xhr.onerror = function(){ cb('offline'); };
+  xhr.ontimeout = function(){ cb('offline'); };
+  try{ xhr.send(body || null); }catch(e){ cb('offline'); }
+}
+
+function serverQueue(json){
+  if(server.mode === 'off') return;
+  if(json !== server.lastSent) server.pending = true;
+  if(server.mode !== 'on' || !server.pending) return;
+  clearTimeout(server.timer);
+  server.timer = setTimeout(serverPush, 600);
+}
+
+function serverPush(){
+  if(server.mode !== 'on' || server.busy) return;
+  var json = JSON.stringify(payload());
+  if(json === server.lastSent){ server.pending = false; updateSyncUI(); return; }
+  server.busy = true;
+  serverRequest('POST', json, function(res){
+    server.busy = false;
+    if(res === 'ok'){
+      server.reach = true; server.lastSent = json;
+      server.pending = (JSON.stringify(payload()) !== json);   // 送信中に変わっていれば次で送る
+      if(server.pending){ clearTimeout(server.timer); server.timer = setTimeout(serverPush, 600); }
+    } else {
+      server.reach = false; server.pending = true;
+    }
+    updateSyncUI();
+  });
+}
+
+/* サーバーの名簿を取り込む。replaceRounds が真なら対戦表も消す */
+function applyServerRoster(d, replaceRounds){
+  restore(d);
+  if(replaceRounds){
+    state.ghosts = []; state.rounds = null; state.roundActive = null;
+    state.builtWith = null; state.current = 0;
+  }
+  state.lastN = (state.rounds && !replaceRounds) ? activeIds().length : -1;
+  server.lastSent = JSON.stringify(payload());
+  server.pending = false;
+  render();
+}
+
+/* 起動時・復帰時の確認。未送信の変更があればこちらを送り、なければサーバーから取り込む */
+function serverSync(){
+  if(server.mode === 'off' || server.busy) return;
+  server.busy = true;
+  serverRequest('GET', null, function(res, d){
+    server.busy = false;
+    if(res === 'off'){ server.mode = 'off'; server.pending = false; updateSyncUI(); return; }
+    if(res === 'offline' || res === 'error'){ server.reach = false; updateSyncUI(); return; }
+    var first = (server.mode !== 'on');
+    server.mode = 'on'; server.reach = true;
+    if(res === 'empty'){
+      server.pending = state.players.length > 0;               // 端末の名簿をサーバーへ移す
+      if(server.pending) serverPush();
+    } else if(server.pending && (!first || JSON.stringify(payload()) !== server.base)){
+      serverPush();                                             // 接続できない間に変えた名簿を優先
+    } else if(d && d.players){
+      var mine = JSON.stringify(payload().players);
+      var theirs = JSON.stringify((function(){ var keep = state.players; restore(d);
+        var x = payload().players; state.players = keep; return x; })());
+      if(mine !== theirs) applyServerRoster(d, false);
+      else { server.lastSent = JSON.stringify(payload()); server.pending = false; }
+    }
+    updateSyncUI();
+  });
+}
+
+function updateSyncUI(){
+  var on = server.mode === 'on';
+  $('serverLoadBtn').hidden = !on;
+  $('exportBtn').hidden = on;
+  $('importBtn').hidden = on;
+  var note = $('syncNote');
+  if(server.mode !== 'off' && server.pending && !server.reach && server.lastSent !== ''){
+    note.hidden = false;
+    note.textContent = 'サーバー（Pythonista）に名簿を保存できていません。この端末には保存されています。Pythonista でサーバーを動かすと自動で保存します。';
+  } else if(server.mode === 'unknown' && !server.reach && server.pending && /^https?:$/.test(location.protocol) && server.tried){
+    note.hidden = false;
+    note.textContent = 'サーバー（Pythonista）に接続できません。名簿はこの端末に保存されています。';
+  } else {
+    note.hidden = true;
+  }
+}
+
+/* 復帰時と、未保存がある間は定期的にやり直す */
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden){ if(server.mode === 'on' && server.pending) serverPush(); else serverSync(); }
+});
+setInterval(function(){
+  if(server.mode === 'off') return;
+  if(server.mode === 'on' && server.pending) serverPush();
+  else if(server.mode === 'unknown') serverSync();
+}, 20000);
 function restore(d){
   if(!d || !d.players) return;
   var cnt = 0;
@@ -1166,7 +1337,7 @@ function buildSchedule(fromRound){
 }
 
 /* ---------- 描画 ---------- */
-function render(){ renderMembers(); renderSetup(); renderStale(); renderRounds(); renderStats(); save(); }
+function render(){ renderMembers(); renderSetup(); renderStale(); renderRounds(); renderStats(); save(); updateSyncUI(); }
 
 function renderMembers(){
   var h = '';
@@ -1513,6 +1684,18 @@ function importRoster(file){
   };
   fr.readAsText(file);
 }
+$('serverLoadBtn').addEventListener('click', function(){
+  serverRequest('GET', null, function(res, d){
+    if(res === 'empty'){ toast('サーバーにはまだ名簿が保存されていません'); return; }
+    if(res !== 'ok' || !d || !d.players){ toast('サーバーに接続できませんでした'); return; }
+    var msg = 'サーバーに保存してある名簿（'+d.players.length+'人'+(d.savedAt ? '・'+d.savedAt : '')+'）で置き換えます。';
+    if(state.rounds) msg += '\nいまの対戦表は消えます。';
+    if(!window.confirm(msg + '\nよろしいですか？')) return;
+    server.mode = 'on'; server.reach = true;
+    applyServerRoster(d, true);
+    toast(state.players.length+'人を読み込みました');
+  });
+});
 $('exportBtn').addEventListener('click', exportRoster);
 $('importBtn').addEventListener('click', function(){ $('importFile').click(); });
 $('importFile').addEventListener('change', function(e){
@@ -1618,6 +1801,68 @@ $('tabs').addEventListener('click', function(e){
   }
 })();
 
+/* ---------- 版番号と更新 ---------- */
+var APP_VERSION = '2026.10.02-2';
+(function(){
+  var ver = document.getElementById('appVer');
+  if(ver) ver.textContent = '版 ' + APP_VERSION;
+
+  /* キャッシュを避けて最新のページを読み直す (名簿は消えない) */
+  function hardReload(){
+    var base = location.href.split('#')[0].split('?')[0];
+    location.replace(base + '?v=' + Date.now());
+  }
+
+  /* タイトルの長押し (0.8秒) で再読み込み */
+  var title = document.getElementById('appTitle'), timer = null;
+  function cancel(){ if(timer){ clearTimeout(timer); timer = null; } title.className = ''; }
+  function start(e){
+    cancel();
+    title.className = 'pressing';
+    timer = setTimeout(function(){
+      timer = null; title.className = '';
+      if(window.confirm('最新の版を読み込み直します。\n名簿と進行中の対戦表はそのまま残ります。\nよろしいですか？')) hardReload();
+    }, 800);
+  }
+  if(title){
+    title.addEventListener('touchstart', start);
+    title.addEventListener('touchend', cancel);
+    title.addEventListener('touchmove', cancel);
+    title.addEventListener('touchcancel', cancel);
+    title.addEventListener('mousedown', start);
+    title.addEventListener('mouseup', cancel);
+    title.addEventListener('mouseleave', cancel);
+    title.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  }
+
+  /* サーバーにある版と比べて、新しければバナーを出す */
+  var bar = document.getElementById('updateBar'), lastCheck = 0;
+  function check(){
+    if(!/^https?:$/.test(location.protocol)) return;
+    var now = Date.now();
+    if(now - lastCheck < 60000) return;
+    lastCheck = now;
+    try{
+      var xhr = new XMLHttpRequest();
+      var base = location.href.split('#')[0].split('?')[0];
+      xhr.open('GET', base + '?check=' + now, true);
+      xhr.setRequestHeader('Cache-Control', 'no-cache');
+      xhr.onload = function(){
+        if(xhr.status !== 200) return;
+        var m = /APP_VERSION = '([^']+)'/.exec(xhr.responseText);
+        if(m && m[1] !== APP_VERSION && bar) bar.hidden = false;
+      };
+      xhr.send();
+    }catch(e){}
+  }
+  if(bar){
+    bar.addEventListener('click', hardReload);
+    bar.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); hardReload(); } });
+  }
+  setTimeout(check, 1500);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) check(); });
+})();
+
 /* 全画面表示だと時刻が見えないので、ラウンド欄に時計を出す */
 (function(){
   var el = document.getElementById('clock');
@@ -1633,7 +1878,12 @@ $('tabs').addEventListener('click', function(e){
   document.addEventListener('visibilitychange', tick);   // 復帰時にすぐ合わせる
 })();
 
-load(function(){ render(); });
+load(function(){
+  var resumed = restoreSession();
+  render();
+  if(resumed) toast('続きから再開しました（ラウンド'+(state.current+1)+'）');
+  server.base = JSON.stringify(payload()); server.tried = true; serverSync();
+});
 })();
 </script>
 </body>
