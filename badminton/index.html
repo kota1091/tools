@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" manifest="app.appcache">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -431,13 +431,14 @@ td.spark{width:34%}
     OPP: 400,     // 同じ相手との対戦回数の偏り (条件7)
     REST: 2600,   // 休み回数の偏り (条件5)
     CONSEC: 1400, // 理論下限を超える連続休み (条件6)
-    GAP: 45       // 休みの間隔の詰まり (D)
+    GAP: 45,      // 休みの間隔の詰まり (D)
+    BACK: 6000    // 同じペアが連続ラウンドで組まれる (最優先で避ける)
   };
   var PROFILES = [
     CANON,
-    { PAIR: 1200, OPP: 60, REST: 6000, CONSEC: 7000, GAP: 260 },  // 休み優先
-    { PAIR: 3200, OPP: 250, REST: 2600, CONSEC: 500, GAP: 20 },    // ペア優先
-    { PAIR: 1200, OPP: 900, REST: 3400, CONSEC: 2600, GAP: 120 }
+    { PAIR: 1200, OPP: 60, REST: 6000, CONSEC: 7000, GAP: 260, BACK: 9000 },  // 休み優先
+    { PAIR: 3200, OPP: 250, REST: 2600, CONSEC: 500, GAP: 20, BACK: 9000 },    // ペア優先
+    { PAIR: 1200, OPP: 900, REST: 3400, CONSEC: 2600, GAP: 120, BACK: 9000 }
   ];
   var W = CANON;
 
@@ -495,7 +496,32 @@ td.spark{width:34%}
     this.restCount = new Int32Array(P);
     this.pairCap = Infinity;   // ペア重複をこれ以上増やす手は却下する
     this.adjCap = Infinity;    // 避けられるはずの連続休みも増やさない
+    this.backCap = Infinity;   // 連続ペアもこれ以上増やさない
+    this._stamp = new Int32Array(P * P);
+    this._stampBase = 0;
   }
+
+  /* 同じペアが隣り合うラウンドで続けて組まれている箇所の数 */
+  Solver.prototype.backCount = function () {
+    var P = this.P, R = this.R, S = this._stamp, n = 0;
+    if (this._stampBase > 2000000000) { S.fill(0); this._stampBase = 0; }
+    var base = this._stampBase; this._stampBase += R + 2;
+    for (var r = 0; r < R; r++) {
+      var c = this.courts[r]; if (c < 1) continue;
+      var perm = this.perm[r], i, a, b, k;
+      for (i = 0; i < c * 2; i++) {
+        a = perm[i * 2]; b = perm[i * 2 + 1];
+        k = a < b ? a * P + b : b * P + a;
+        if (S[k] === base + r) n++;
+      }
+      for (i = 0; i < c * 2; i++) {
+        a = perm[i * 2]; b = perm[i * 2 + 1];
+        k = a < b ? a * P + b : b * P + a;
+        S[k] = base + r + 1;
+      }
+    }
+    return n;
+  };
 
   /* --- 1ラウンド分の集計を加算(sign=+1)/減算(sign=-1) --- */
   Solver.prototype._apply = function (r, sign) {
@@ -584,16 +610,17 @@ td.spark{width:34%}
 
   Solver.prototype.okCaps = function () {
     if (this.costPair > this.pairCap) return false;
+    if (this.backCap < Infinity && this.backCount() > this.backCap) return false;
     if (this.adjCap < Infinity && this.adjExcess() > this.adjCap) return false;
     return true;
   };
 
   Solver.prototype.totalCost = function () {
     var Wt = this.W;
-    return Wt.PAIR * this.costPair + Wt.OPP * this.costOpp + this._restCost(Wt);
+    return Wt.PAIR * this.costPair + Wt.OPP * this.costOpp + Wt.BACK * this.backCount() + this._restCost(Wt);
   };
   Solver.prototype.canonCost = function () {
-    return CANON.PAIR * this.costPair + CANON.OPP * this.costOpp + this._restCost(CANON);
+    return CANON.PAIR * this.costPair + CANON.OPP * this.costOpp + CANON.BACK * this.backCount() + this._restCost(CANON);
   };
 
   /* --- 初期解: 休み不足の人を優先的に休ませる貪欲法 --- */
@@ -813,7 +840,7 @@ td.spark{width:34%}
     var restarts = Math.max(4, Math.round(8 * effort));
     var iters = Math.round((9000 + maxN * 2200) * effort * Math.max(0.5, R / 12));
 
-    var best = null, bestCost = Infinity, bestPair = Infinity, bestAdj = Infinity;
+    var best = null, bestCost = Infinity, bestPair = Infinity, bestAdj = Infinity, bestBack = Infinity;
     for (var t = 0; t < restarts; t++) {
       var rng = mulberry32((cfg.seed || 12345) + t * 7919);
       var s = new Solver({
@@ -822,10 +849,10 @@ td.spark{width:34%}
       }, rng, PROFILES[t % PROFILES.length]);
       s.init();
       s.anneal(iters, 6000, 0.4);
-      var c1 = s.canonCost(), cp = s.costPair, ca = s.adjExcess();
-      if (best === null || cp < bestPair ||
-          (cp === bestPair && (ca < bestAdj || (ca === bestAdj && c1 < bestCost)))) {
-        bestPair = cp; bestAdj = ca; bestCost = c1; best = s.snapshot();
+      var c1 = s.canonCost(), cp = s.costPair, ca = s.adjExcess(), cb = s.backCount();
+      if (best === null || cb < bestBack || (cb === bestBack && (cp < bestPair ||
+          (cp === bestPair && (ca < bestAdj || (ca === bestAdj && c1 < bestCost)))))) {
+        bestBack = cb; bestPair = cp; bestAdj = ca; bestCost = c1; best = s.snapshot();
       }
     }
 
@@ -835,9 +862,9 @@ td.spark{width:34%}
       courtsByRound: courtsByRound, locked: lockedPerm
     }, mulberry32((cfg.seed || 12345) + 104729), CANON);
     polish.loadFrom(best);
-    polish.pairCap = bestPair; polish.adjCap = bestAdj;
+    polish.pairCap = bestPair; polish.adjCap = bestAdj; polish.backCap = bestBack;
     polish.anneal(Math.round(iters * 1.5), 700, 0.05);
-    if (polish.costPair <= bestPair && polish.adjExcess() <= bestAdj && polish.canonCost() <= bestCost) {
+    if (polish.costPair <= bestPair && polish.adjExcess() <= bestAdj && polish.backCount() <= bestBack && polish.canonCost() <= bestCost) {
       bestCost = polish.canonCost(); best = polish.snapshot();
     }
 
@@ -848,10 +875,10 @@ td.spark{width:34%}
         courtsByRound: courtsByRound, locked: lockedPerm
       }, mulberry32((cfg.seed || 12345) + 31337), PROFILES[1]);
       fixD.loadFrom(best);
-      fixD.pairCap = bestPair;
+      fixD.pairCap = bestPair; fixD.backCap = bestBack;
       fixD.anneal(Math.round(iters * 1.2), 900, 0.05);
       var fa = fixD.adjExcess();
-      if (fixD.costPair <= bestPair && fa < bestAdj) {
+      if (fixD.costPair <= bestPair && fixD.backCount() <= bestBack && fa < bestAdj) {
         bestAdj = fa; bestCost = fixD.canonCost(); best = fixD.snapshot();
       }
     }
@@ -1802,7 +1829,7 @@ $('tabs').addEventListener('click', function(e){
 })();
 
 /* ---------- 版番号と更新 ---------- */
-var APP_VERSION = '2026.10.02-2';
+var APP_VERSION = '2026.10.19-1';
 (function(){
   var ver = document.getElementById('appVer');
   if(ver) ver.textContent = '版 ' + APP_VERSION;
@@ -1813,6 +1840,22 @@ var APP_VERSION = '2026.10.02-2';
     location.replace(base + '?v=' + Date.now());
   }
 
+  /* アプリケーションキャッシュ: ページ一式を iPad に保存し、サーバーが止まっていても開けるようにする。
+     サーバーにつながったときに新しい版を取り込み、取り込めたら黄色い帯で知らせる。 */
+  var ac = null;
+  try{ ac = window.applicationCache || null; }catch(e){}
+  function acActive(){          // 0:未保存 5:破棄済み 以外なら保存されたページで動いている
+    try{ return !!ac && ac.status !== 0 && ac.status !== 5; }catch(e){ return false; }
+  }
+  function reloadApp(){
+    if(acActive()){
+      try{ if(ac.status === 4) ac.swapCache(); }catch(e){}   // 4: 新しい版を取り込み済み
+      location.reload();        // 保存したページから開き直す (サーバーが止まっていても開ける)
+      return;
+    }
+    hardReload();
+  }
+
   /* タイトルの長押し (0.8秒) で再読み込み */
   var title = document.getElementById('appTitle'), timer = null;
   function cancel(){ if(timer){ clearTimeout(timer); timer = null; } title.className = ''; }
@@ -1821,7 +1864,7 @@ var APP_VERSION = '2026.10.02-2';
     title.className = 'pressing';
     timer = setTimeout(function(){
       timer = null; title.className = '';
-      if(window.confirm('最新の版を読み込み直します。\n名簿と進行中の対戦表はそのまま残ります。\nよろしいですか？')) hardReload();
+      if(window.confirm('最新の版を読み込み直します。\n名簿と進行中の対戦表はそのまま残ります。\nよろしいですか？')) reloadApp();
     }, 800);
   }
   if(title){
@@ -1839,6 +1882,7 @@ var APP_VERSION = '2026.10.02-2';
   var bar = document.getElementById('updateBar'), lastCheck = 0;
   function check(){
     if(!/^https?:$/.test(location.protocol)) return;
+    if(acActive()){ try{ ac.update(); }catch(e){} return; }   // 保存したページで動いているときは目録で確認
     var now = Date.now();
     if(now - lastCheck < 60000) return;
     lastCheck = now;
@@ -1856,8 +1900,14 @@ var APP_VERSION = '2026.10.02-2';
     }catch(e){}
   }
   if(bar){
-    bar.addEventListener('click', hardReload);
-    bar.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); hardReload(); } });
+    bar.addEventListener('click', reloadApp);
+    bar.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); reloadApp(); } });
+  }
+  if(ac){
+    try{
+      ac.addEventListener('updateready', function(){ if(bar) bar.hidden = false; });
+      if(ac.status === 4 && bar) bar.hidden = false;
+    }catch(e){}
   }
   setTimeout(check, 1500);
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) check(); });
